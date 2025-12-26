@@ -1,3 +1,4 @@
+use crate::connection_store::{ConnectionStore, PasswordStore, StoredConnection};
 use crate::redis_client::{ConnectionConfig, ConnectionStatus, RedisConnectionManager};
 use redis::Commands;
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,8 @@ use tauri::State;
 
 pub struct AppState {
     pub redis_manager: Mutex<RedisConnectionManager>,
+    pub connection_store: Mutex<ConnectionStore>,
+    pub password_store: PasswordStore,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -149,11 +152,14 @@ pub async fn get_value(
             serde_json::to_string_pretty(&val).unwrap()
         }
         "zset" => {
-            let val: Vec<(String, f64)> = conn.zrange_withscores(&key, 0, -1).map_err(|e| e.to_string())?;
+            let val: Vec<(String, f64)> = conn
+                .zrange_withscores(&key, 0, -1)
+                .map_err(|e| e.to_string())?;
             serde_json::to_string_pretty(&val).unwrap()
         }
         "hash" => {
-            let val: std::collections::HashMap<String, String> = conn.hgetall(&key).map_err(|e| e.to_string())?;
+            let val: std::collections::HashMap<String, String> =
+                conn.hgetall(&key).map_err(|e| e.to_string())?;
             serde_json::to_string_pretty(&val).unwrap()
         }
         _ => String::from("Unsupported type"),
@@ -237,12 +243,82 @@ pub async fn execute_command(
         return Err("Empty command".to_string());
     }
 
-    let result: redis::RedisResult<redis::Value> = redis::cmd(parts[0])
-        .arg(&parts[1..])
-        .query(&mut conn);
+    let result: redis::RedisResult<redis::Value> =
+        redis::cmd(parts[0]).arg(&parts[1..]).query(&mut conn);
 
     match result {
         Ok(value) => Ok(format!("{:?}", value)),
         Err(e) => Err(e.to_string()),
     }
+}
+
+// Connection Management Commands
+
+#[tauri::command]
+pub async fn save_connection(
+    connection: ConnectionConfig,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let store = state.connection_store.lock().unwrap();
+
+    // Save password to keychain if provided
+    if let Some(ref password) = connection.password {
+        state
+            .password_store
+            .save_password(&connection.id, password)
+            .map_err(|e| format!("Failed to save password: {}", e))?;
+    }
+
+    // Save connection (without password) to disk
+    let stored_conn = StoredConnection {
+        id: connection.id,
+        name: connection.name,
+        host: connection.host,
+        port: connection.port,
+        username: connection.username,
+        password: None, // Never store password in JSON
+        database: connection.database,
+        use_tls: connection.use_tls,
+    };
+
+    store
+        .add_connection(stored_conn)
+        .map_err(|e| format!("Failed to save connection: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn load_connections(state: State<'_, AppState>) -> Result<Vec<StoredConnection>, String> {
+    let store = state.connection_store.lock().unwrap();
+
+    store
+        .load_connections()
+        .map_err(|e| format!("Failed to load connections: {}", e))
+}
+
+#[tauri::command]
+pub async fn delete_saved_connection(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let store = state.connection_store.lock().unwrap();
+
+    // Delete password from keychain
+    let _ = state.password_store.delete_password(&connection_id);
+
+    store
+        .remove_connection(&connection_id)
+        .map_err(|e| format!("Failed to delete connection: {}", e))
+}
+
+#[tauri::command]
+pub async fn get_connection_password(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    state
+        .password_store
+        .get_password(&connection_id)
+        .map_err(|e| format!("Failed to get password: {}", e))
 }

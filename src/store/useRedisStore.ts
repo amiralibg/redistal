@@ -1,8 +1,9 @@
-import { create } from 'zustand';
-import { ConnectionConfig, RedisKey } from '../types/redis';
+import { create } from "zustand";
+import { ConnectionConfig, RedisKey, StoredConnection } from "../types/redis";
 
 interface RedisStore {
   connections: ConnectionConfig[];
+  savedConnections: StoredConnection[];
   activeConnectionId: string | null;
   keys: string[];
   selectedKey: string | null;
@@ -12,6 +13,8 @@ interface RedisStore {
   setConnections: (connections: ConnectionConfig[]) => void;
   addConnection: (connection: ConnectionConfig) => void;
   removeConnection: (id: string) => void;
+  setSavedConnections: (connections: StoredConnection[]) => void;
+  removeSavedConnection: (id: string) => void;
   setActiveConnection: (id: string | null) => void;
   setKeys: (keys: string[]) => void;
   setSelectedKey: (key: string | null) => void;
@@ -21,11 +24,12 @@ interface RedisStore {
 
 export const useRedisStore = create<RedisStore>((set) => ({
   connections: [],
+  savedConnections: [],
   activeConnectionId: null,
   keys: [],
   selectedKey: null,
   selectedKeyInfo: null,
-  searchPattern: '*',
+  searchPattern: "*",
 
   setConnections: (connections) => set({ connections }),
   addConnection: (connection) =>
@@ -33,9 +37,16 @@ export const useRedisStore = create<RedisStore>((set) => ({
   removeConnection: (id) =>
     set((state) => ({
       connections: state.connections.filter((c) => c.id !== id),
-      activeConnectionId: state.activeConnectionId === id ? null : state.activeConnectionId,
+      activeConnectionId:
+        state.activeConnectionId === id ? null : state.activeConnectionId,
     })),
-  setActiveConnection: (id) => set({ activeConnectionId: id, keys: [], selectedKey: null }),
+  setSavedConnections: (connections) => set({ savedConnections: connections }),
+  removeSavedConnection: (id) =>
+    set((state) => ({
+      savedConnections: state.savedConnections.filter((c) => c.id !== id),
+    })),
+  setActiveConnection: (id) =>
+    set({ activeConnectionId: id, keys: [], selectedKey: null }),
   setKeys: (keys) => set({ keys }),
   setSelectedKey: (key) => set({ selectedKey: key }),
   setSelectedKeyInfo: (info) => set({ selectedKeyInfo: info }),

@@ -1,17 +1,26 @@
 import { useState } from "react";
-import { Database, Plus, Sun, Moon } from "lucide-react";
+import { Database, Plus, Sun, Moon, List } from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
+import { ConnectionList } from "./components/ConnectionList";
 import { KeyBrowser } from "./components/KeyBrowser";
 import { ValueViewer } from "./components/ValueViewer";
 import { CliPanel } from "./components/CliPanel";
 import { useRedisStore } from "./store/useRedisStore";
 import { useTheme } from "./lib/theme-context";
+import { useLoadConnections } from "./hooks/useLoadConnections";
 import { Button, IconButton, Badge } from "./components/ui";
+import type { StoredConnection } from "./types/redis";
 
 function App() {
   const [showConnectionDialog, setShowConnectionDialog] = useState(false);
-  const { activeConnectionId, connections } = useRedisStore();
+  const [showConnectionList, setShowConnectionList] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<
+    StoredConnection | undefined
+  >(undefined);
+  const { activeConnectionId, connections, savedConnections } = useRedisStore();
   const { theme, toggleTheme } = useTheme();
+
+  useLoadConnections();
 
   const activeConnection = connections.find((c) => c.id === activeConnectionId);
 
@@ -69,6 +78,17 @@ function App() {
               )}
             </IconButton>
 
+            {savedConnections.length > 0 && (
+              <Button
+                onClick={() => setShowConnectionList(true)}
+                variant="secondary"
+                size="md"
+              >
+                <List className="w-4 h-4" />
+                Connections ({savedConnections.length})
+              </Button>
+            )}
+
             <Button
               onClick={() => setShowConnectionDialog(true)}
               variant="primary"
@@ -105,7 +125,22 @@ function App() {
       {/* Connection Dialog */}
       <ConnectionDialog
         isOpen={showConnectionDialog}
-        onClose={() => setShowConnectionDialog(false)}
+        onClose={() => {
+          setShowConnectionDialog(false);
+          setEditingConnection(undefined);
+        }}
+        editConnection={editingConnection}
+      />
+
+      {/* Connection List */}
+      <ConnectionList
+        isOpen={showConnectionList}
+        onClose={() => setShowConnectionList(false)}
+        onEditConnection={(connection) => {
+          setEditingConnection(connection);
+          setShowConnectionList(false);
+          setShowConnectionDialog(true);
+        }}
       />
     </div>
   );

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Server, Lock, Database as DatabaseIcon, Shield } from "lucide-react";
 import { ConnectionConfig } from "../types/redis";
+import type { StoredConnection } from "../types/redis";
 import { redisApi } from "../lib/tauri-api";
 import { useRedisStore } from "../store/useRedisStore";
 import { useToast } from "../lib/toast-context";
@@ -9,10 +10,16 @@ import { Dialog, Button, Input } from "./ui";
 interface ConnectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  editConnection?: StoredConnection;
 }
 
-export function ConnectionDialog({ isOpen, onClose }: ConnectionDialogProps) {
-  const { addConnection, setActiveConnection } = useRedisStore();
+export function ConnectionDialog({
+  isOpen,
+  onClose,
+  editConnection,
+}: ConnectionDialogProps) {
+  const { addConnection, setActiveConnection, setSavedConnections } =
+    useRedisStore();
   const toast = useToast();
   const [formData, setFormData] = useState({
     name: "Local Redis",
@@ -23,8 +30,38 @@ export function ConnectionDialog({ isOpen, onClose }: ConnectionDialogProps) {
     database: 0,
     use_tls: false,
   });
+  const [saveConnection, setSaveConnection] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Populate form when editing a connection
+  useEffect(() => {
+    if (editConnection && isOpen) {
+      setFormData({
+        name: editConnection.name,
+        host: editConnection.host,
+        port: editConnection.port,
+        username: editConnection.username || "",
+        password: "", // Don't pre-fill password for security
+        database: editConnection.database,
+        use_tls: editConnection.use_tls,
+      });
+      setSaveConnection(true);
+    } else if (!isOpen) {
+      // Reset form when dialog closes
+      setFormData({
+        name: "Local Redis",
+        host: "localhost",
+        port: 6379,
+        username: "",
+        password: "",
+        database: 0,
+        use_tls: false,
+      });
+      setSaveConnection(true);
+      setError("");
+    }
+  }, [editConnection, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +70,7 @@ export function ConnectionDialog({ isOpen, onClose }: ConnectionDialogProps) {
 
     try {
       const config: ConnectionConfig = {
-        id: crypto.randomUUID(),
+        id: editConnection ? editConnection.id : crypto.randomUUID(),
         name: formData.name,
         host: formData.host,
         port: formData.port,
@@ -43,27 +80,68 @@ export function ConnectionDialog({ isOpen, onClose }: ConnectionDialogProps) {
         use_tls: formData.use_tls,
       };
 
-      const status = await redisApi.connect(config);
+      // If editing, we just update the saved connection without connecting
+      if (editConnection) {
+        if (saveConnection) {
+          try {
+            // Delete old connection
+            await redisApi.deleteSavedConnection(editConnection.id);
+            // Save updated connection
+            await redisApi.saveConnection(config);
 
-      if (status.connected) {
-        addConnection(config);
-        setActiveConnection(config.id);
-        toast.success("Connected successfully", `Connected to ${config.name}`);
-        onClose();
-        // Reset form
-        setFormData({
-          name: "Local Redis",
-          host: "localhost",
-          port: 6379,
-          username: "",
-          password: "",
-          database: 0,
-          use_tls: false,
-        });
+            // Reload connections to update the list
+            const connections = await redisApi.loadConnections();
+            setSavedConnections(connections);
+
+            toast.success(
+              "Connection updated",
+              `Updated connection ${config.name}`,
+            );
+            onClose();
+          } catch (saveError) {
+            console.error("Failed to update connection:", saveError);
+            toast.error(
+              "Update failed",
+              `Failed to update connection ${config.name}`,
+            );
+          }
+        }
       } else {
-        const errorMsg = status.error || "Connection failed";
-        setError(errorMsg);
-        toast.error("Connection failed", errorMsg);
+        // New connection - connect to it
+        const status = await redisApi.connect(config);
+
+        if (status.connected) {
+          addConnection(config);
+          setActiveConnection(config.id);
+
+          // Save connection to disk if requested
+          if (saveConnection) {
+            try {
+              await redisApi.saveConnection(config);
+              toast.success(
+                "Connection saved",
+                `Connected to ${config.name} and saved for future use`,
+              );
+            } catch (saveError) {
+              console.error("Failed to save connection:", saveError);
+              toast.warning(
+                "Connected but not saved",
+                `Connected to ${config.name} but failed to save connection`,
+              );
+            }
+          } else {
+            toast.success(
+              "Connected successfully",
+              `Connected to ${config.name}`,
+            );
+          }
+
+          onClose();
+        } else {
+          const errorMsg = status.error || "Connection failed";
+          setError(errorMsg);
+          toast.error("Connection failed", errorMsg);
+        }
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to connect";
@@ -75,7 +153,12 @@ export function ConnectionDialog({ isOpen, onClose }: ConnectionDialogProps) {
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="New Connection" size="md">
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editConnection ? "Edit Connection" : "New Connection"}
+      size="md"
+    >
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Connection Name */}
         <Input
@@ -183,6 +266,27 @@ export function ConnectionDialog({ isOpen, onClose }: ConnectionDialogProps) {
               </div>
             </label>
           </div>
+        </div>
+
+        {/* Save Connection Option */}
+        <div className="pt-2">
+          <label className="flex items-center gap-3 p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+            <input
+              type="checkbox"
+              checked={saveConnection}
+              onChange={(e) => setSaveConnection(e.target.checked)}
+              className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 rounded focus:ring-brand-500 focus:ring-2"
+            />
+            <div className="flex-1">
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Save connection for future use
+              </span>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                Connection details will be saved locally. Passwords are stored
+                securely in your system keychain.
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Error Message */}
