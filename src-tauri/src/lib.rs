@@ -42,6 +42,10 @@ pub fn run() {
             commands::get_connection_password,
             commands::test_connection,
             commands::get_key_memory_usage,
+            commands::get_list_range,
+            commands::get_set_members,
+            commands::get_zset_range,
+            commands::get_hash_fields,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

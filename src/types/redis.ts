@@ -51,3 +51,27 @@ export type RedisDataType =
   | "hash"
   | "stream"
   | "none";
+
+export interface PaginatedListResult {
+  items: string[];
+  total_count: number;
+  has_more: boolean;
+}
+
+export interface PaginatedSetResult {
+  members: string[];
+  cursor: number;
+  has_more: boolean;
+}
+
+export interface PaginatedZSetResult {
+  items: [string, number][];
+  total_count: number;
+  has_more: boolean;
+}
+
+export interface PaginatedHashResult {
+  fields: Record<string, string>;
+  cursor: number;
+  has_more: boolean;
+}

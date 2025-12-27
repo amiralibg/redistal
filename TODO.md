@@ -4,6 +4,13 @@ This file tracks planned features and tech-debt items for the Redis GUI.
 
 ## Recently Completed (Latest Session)
 
+- [x] **Performance Overhaul** - Major performance improvements for handling large datasets
+  - [x] Removed 10k key limit - now fetches ALL matching keys using SCAN
+  - [x] Virtual scrolling with react-window for rendering 100k+ keys smoothly
+  - [x] Debounced search (500ms) for instant client-side filtering
+  - [x] In-memory caching system for keys, values, and metadata (10-30s TTL)
+  - [x] Pagination APIs for large collections (lists, sets, hashes, zsets)
+  - [x] Optimized SCAN batch size from 500 to 1000
 - [x] **Test Connection Before Saving** - Validate connections with PING before saving to prevent broken configs
 - [x] **Size-Aware Value Loading** - Check memory usage (1MB threshold) and warn before loading large values
 - [x] **Cursor-Based Key Pagination** - Non-blocking SCAN with "Load More" button (100 keys/batch)
@@ -44,17 +51,20 @@ This file tracks planned features and tech-debt items for the Redis GUI.
 
 ## Data & Performance
 
+- [x] Removed 10k key limit (now fetches all keys via SCAN)
 - [x] Cursor-based paging for key browsing (`SCAN` cursor in UI) with Load More button
-- [ ] List virtualization for rendering thousands of keys
+- [x] List virtualization for rendering thousands of keys (react-window)
+- [x] Debounced search input (500ms) with client-side filtering
+- [x] In-memory caching for API calls (10-30s TTL with auto-invalidation)
 - [ ] Replace global refresh with incremental loading + cancel support
 - [x] Avoid loading huge values by default:
   - [x] Size-aware loading (show size before loading large values)
   - [x] Configurable max value size threshold (1MB)
-  - [ ] Fetch ranges for lists/sets/zsets (paginated viewing)
+  - [x] Fetch ranges for lists/sets/zsets (paginated viewing) - Backend APIs ready
   - [ ] Stream large string values
 - [ ] Background key count refresh (non-blocking)
-- [ ] Debounced search input
-- [ ] Cache frequently accessed keys/values
+- [x] Debounced search input (500ms delay)
+- [x] Cache frequently accessed keys/values (SimpleCache with TTL)
 
 ## Core Redis UX
 

@@ -1,0 +1,15 @@
+{
+  "name": "redistal-test-scripts",
+  "version": "1.0.0",
+  "description": "Test data population and cleanup scripts for Redistal",
+  "type": "module",
+  "scripts": {
+    "populate": "node populate-redis.js",
+    "cleanup": "node cleanup-redis.js",
+    "cleanup:all": "node cleanup-redis.js redis://localhost:6379 all",
+    "cleanup:pattern": "node cleanup-redis.js redis://localhost:6379 pattern"
+  },
+  "dependencies": {
+    "redis": "^4.7.0"
+  }
+}

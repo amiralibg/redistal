@@ -273,7 +273,7 @@ export function CliPanel() {
                 <span className="text-blue-600 dark:text-blue-400 flex-1 break-all">
                   {entry.command}
                 </span>
-                <span className="text-xs text-neutral-500 dark:text-neutral-600 flex-shrink-0">
+                <span className="text-xs text-neutral-500 dark:text-neutral-600 shrink-0">
                   {entry.timestamp.toLocaleTimeString()}
                 </span>
               </div>

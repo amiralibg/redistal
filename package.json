@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test:populate": "cd scripts && npm install && node populate-redis.js",
+    "test:cleanup": "cd scripts && npm install && node cleanup-redis.js",
+    "test:cleanup:all": "cd scripts && npm install && node cleanup-redis.js redis://localhost:6379 all"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -18,6 +21,7 @@
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-window": "^2.2.3",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
@@ -25,6 +29,7 @@
     "@tauri-apps/cli": "^2.9.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/react-window": "^1.8.8",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",

@@ -187,7 +187,7 @@ function App() {
     <div className="h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950">
       {/* Custom titlebar with drag region */}
       <div
-        className="h-8 bg-white dark:bg-neutral-900 flex-shrink-0 select-none"
+        className="h-8 bg-white dark:bg-neutral-900 shrink-0 select-none"
         onMouseDown={async (e) => {
           if (e.buttons === 1) {
             if (e.detail === 2) {

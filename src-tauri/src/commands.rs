@@ -65,8 +65,8 @@ pub async fn get_keys(
 
     // Avoid `KEYS` which can block Redis on large datasets.
     // We keep the existing frontend contract (return a Vec<String>) but implement it via SCAN.
-    const SCAN_COUNT: usize = 500;
-    const MAX_KEYS: usize = 10_000;
+    // Removed MAX_KEYS limit - now fetches all matching keys
+    const SCAN_COUNT: usize = 1000;
 
     let mut cursor: u64 = 0;
     let mut seen: HashSet<String> = HashSet::new();
@@ -82,13 +82,10 @@ pub async fn get_keys(
             .map_err(|e| e.to_string())?;
 
         for key in batch {
-            if seen.len() >= MAX_KEYS {
-                break;
-            }
             seen.insert(key);
         }
 
-        if seen.len() >= MAX_KEYS || next_cursor == 0 {
+        if next_cursor == 0 {
             break;
         }
         cursor = next_cursor;
@@ -462,5 +459,186 @@ pub async fn get_key_memory_usage(
                 Err(_) => Ok(None),
             }
         }
+    }
+}
+
+// Paginated collection fetch commands
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginatedListResult {
+    pub items: Vec<String>,
+    pub total_count: usize,
+    pub has_more: bool,
+}
+
+#[tauri::command]
+pub async fn get_list_range(
+    connection_id: String,
+    key: String,
+    start: i64,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<PaginatedListResult, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let total_count: usize = conn.llen(&key).map_err(|e| e.to_string())?;
+    let end = start + count as i64 - 1;
+
+    let items: Vec<String> = conn
+        .lrange(&key, start as isize, end as isize)
+        .map_err(|e| e.to_string())?;
+
+    Ok(PaginatedListResult {
+        items,
+        total_count,
+        has_more: (start + count as i64) < total_count as i64,
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginatedSetResult {
+    pub members: Vec<String>,
+    pub cursor: u64,
+    pub has_more: bool,
+}
+
+#[tauri::command]
+pub async fn get_set_members(
+    connection_id: String,
+    key: String,
+    cursor: u64,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<PaginatedSetResult, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let (next_cursor, members): (u64, Vec<String>) = redis::cmd("SSCAN")
+        .arg(&key)
+        .arg(cursor)
+        .arg("COUNT")
+        .arg(count)
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    Ok(PaginatedSetResult {
+        members,
+        cursor: next_cursor,
+        has_more: next_cursor != 0,
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginatedZSetResult {
+    pub items: Vec<(String, f64)>,
+    pub total_count: usize,
+    pub has_more: bool,
+}
+
+#[tauri::command]
+pub async fn get_zset_range(
+    connection_id: String,
+    key: String,
+    start: i64,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<PaginatedZSetResult, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let total_count: usize = conn.zcard(&key).map_err(|e| e.to_string())?;
+    let end = start + count as i64 - 1;
+
+    let items: Vec<(String, f64)> = conn
+        .zrange_withscores(&key, start as isize, end as isize)
+        .map_err(|e| e.to_string())?;
+
+    Ok(PaginatedZSetResult {
+        items,
+        total_count,
+        has_more: (start + count as i64) < total_count as i64,
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginatedHashResult {
+    pub fields: std::collections::HashMap<String, String>,
+    pub cursor: u64,
+    pub has_more: bool,
+}
+
+#[tauri::command]
+pub async fn get_hash_fields(
+    connection_id: String,
+    key: String,
+    cursor: u64,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<PaginatedHashResult, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    // HSCAN returns cursor and array of [field, value, field, value, ...]
+    let result: redis::Value = redis::cmd("HSCAN")
+        .arg(&key)
+        .arg(cursor)
+        .arg("COUNT")
+        .arg(count)
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    match result {
+        redis::Value::Array(ref bulk) if bulk.len() == 2 => {
+            let next_cursor = match &bulk[0] {
+                redis::Value::BulkString(ref bytes) => {
+                    String::from_utf8_lossy(bytes).parse::<u64>().unwrap_or(0)
+                }
+                _ => 0,
+            };
+
+            let mut fields = std::collections::HashMap::new();
+
+            if let redis::Value::Array(ref items) = bulk[1] {
+                let mut i = 0;
+                while i < items.len() {
+                    if i + 1 < items.len() {
+                        let field = match &items[i] {
+                            redis::Value::BulkString(ref bytes) => {
+                                String::from_utf8_lossy(bytes).to_string()
+                            }
+                            _ => continue,
+                        };
+                        let value = match &items[i + 1] {
+                            redis::Value::BulkString(ref bytes) => {
+                                String::from_utf8_lossy(bytes).to_string()
+                            }
+                            _ => continue,
+                        };
+                        fields.insert(field, value);
+                    }
+                    i += 2;
+                }
+            }
+
+            Ok(PaginatedHashResult {
+                fields,
+                cursor: next_cursor,
+                has_more: next_cursor != 0,
+            })
+        }
+        _ => Err("Unexpected response format from HSCAN".to_string()),
     }
 }
