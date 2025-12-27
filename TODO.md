@@ -18,23 +18,23 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [x] Loading states for all async operations (buttons have loading prop)
   - [x] Better error messages with actionable suggestions
   - [x] Confirmation dialogs for destructive actions (delete key, dangerous commands)
-
-## Next (High Priority)
-
-- [ ] **Connection Management**
-  - [ ] Persist connections (name/host/port/db/use_tls) to disk
-  - [ ] Store passwords securely in OS keychain (Rust `keyring`)
-  - [ ] Connection bookmarks/favorites
-  - [ ] Recent connections list
+- [x] **Connection Management**
+  - [x] Persist connections (name/host/port/db/use_tls) to disk
+  - [x] Store passwords securely in OS keychain (Rust `keyring`)
+  - [x] Connection bookmarks/favorites (saved connections list)
+  - [x] Quick connection switcher (connections dialog)
+  - [x] Edit saved connections
+  - [x] Delete saved connections
+  - [x] Load saved connections on startup
   - [ ] Test connection before saving
   - [ ] Connection groups/folders for organization
-  - [ ] Quick connection switcher (dropdown or command palette)
-
-- [ ] **Safety Features**
-  - [ ] Read-only / safe mode toggle (prevent accidental writes/deletes)
-  - [ ] Confirmation dialog for key deletion
+- [x] **Safety Features**
+  - [x] Read-only / safe mode toggle (prevent accidental writes/deletes)
+  - [x] Confirmation dialog for key deletion
   - [ ] Confirmation for bulk operations
-  - [ ] Dangerous command warnings (FLUSHDB, FLUSHALL, etc.)
+  - [x] Dangerous command warnings (FLUSHDB, FLUSHALL, etc.)
+
+## Next (High Priority)
 
 ## Data & Performance
 
@@ -52,46 +52,30 @@ This file tracks planned features and tech-debt items for the Redis GUI.
 ## Core Redis UX
 
 - [ ] **Key Management**
-  - [ ] Create key flow (choose type: string/hash/list/set/zset/stream)
-  - [ ] Rename key support
-  - [ ] Duplicate/copy key
+  - [x] Create key flow (choose type: string/hash/list/set/zset/stream)
+  - [x] Rename key support
+  - [x] Duplicate/copy key
   - [ ] Key metadata panel (memory usage, encoding, refcount)
   - [ ] Multi-select keys for bulk operations
   - [ ] Filter keys by type
 
 - [ ] **Type-Aware Editors**
-  - [ ] String editor:
-    - [ ] Text mode with syntax highlighting
-    - [ ] JSON mode with validation and formatting
+  - [x] String editor:
+    - [x] Text mode with syntax highlighting
+    - [x] JSON mode with validation and formatting
     - [ ] Hex viewer for binary data
     - [ ] Base64 encode/decode
-  - [ ] Hash table editor:
-    - [ ] Table view with field/value columns
-    - [ ] Add/edit/delete individual fields
-    - [ ] Search/filter fields
-    - [ ] Bulk import/export fields
-  - [ ] List viewer/editor:
-    - [ ] Index-based navigation
-    - [ ] Push/pop operations (LPUSH, RPUSH, LPOP, RPOP)
-    - [ ] Insert at index
-    - [ ] Remove by value
-    - [ ] Trim list
-  - [ ] Set viewer/editor:
-    - [ ] Add/remove members
-    - [ ] Set operations UI (union, intersection, difference)
-    - [ ] Check membership
-    - [ ] Random member picker
-  - [ ] Zset viewer/editor:
-    - [ ] Sortable table (by score or member)
-    - [ ] Add/update member with score
-    - [ ] Remove members
-    - [ ] Range queries (by score or rank)
-    - [ ] Increment score
-  - [ ] Stream viewer:
-    - [ ] Message list with pagination
-    - [ ] Consumer group management
-    - [ ] Add messages to stream
-    - [ ] Acknowledge messages
+  - [x] Hash viewer (JSON display, read-only)
+  - [x] List viewer (JSON display, read-only)
+  - [x] Set viewer (JSON display, read-only)
+  - [x] Zset viewer (JSON display with scores, read-only)
+  - [x] Stream viewer (raw format display, read-only)
+  - [ ] Future enhancements:
+    - [ ] Hash table editor with add/edit/delete fields UI
+    - [ ] List editor with push/pop operations UI
+    - [ ] Set editor with add/remove members UI
+    - [ ] Zset editor with sortable table UI
+    - [ ] Stream viewer with pagination and message management
 
 - [ ] **CLI Enhancements**
   - [ ] Better output formatting:

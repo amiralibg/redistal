@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Search, RefreshCw, Key, Database } from "lucide-react";
+import { Search, RefreshCw, Key, Database, Plus } from "lucide-react";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
-import { Input, IconButton, Badge } from "./ui";
+import { Input, IconButton, Badge, Button } from "./ui";
+import { CreateKeyDialog } from "./CreateKeyDialog";
 import clsx from "clsx";
 
 export function KeyBrowser() {
@@ -19,6 +20,7 @@ export function KeyBrowser() {
 
   const [loading, setLoading] = useState(false);
   const [localPattern, setLocalPattern] = useState(searchPattern);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const loadKeys = async () => {
     if (!activeConnectionId) return;
@@ -82,16 +84,29 @@ export function KeyBrowser() {
           <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide">
             Keys
           </h2>
-          <IconButton
-            type="button"
-            onClick={loadKeys}
-            disabled={loading}
-            variant="ghost"
-            size="sm"
-            title="Refresh keys"
-          >
-            <RefreshCw className={clsx("w-4 h-4", loading && "animate-spin")} />
-          </IconButton>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowCreateDialog(true)}
+              variant="primary"
+              size="sm"
+              disabled={!activeConnectionId}
+            >
+              <Plus className="w-4 h-4" />
+              New
+            </Button>
+            <IconButton
+              type="button"
+              onClick={loadKeys}
+              disabled={loading}
+              variant="ghost"
+              size="sm"
+              title="Refresh keys"
+            >
+              <RefreshCw
+                className={clsx("w-4 h-4", loading && "animate-spin")}
+              />
+            </IconButton>
+          </div>
         </div>
 
         {/* Search */}
@@ -177,6 +192,12 @@ export function KeyBrowser() {
           </div>
         )}
       </div>
+
+      {/* Create Key Dialog */}
+      <CreateKeyDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+      />
     </div>
   );
 }

@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Database, Plus, Sun, Moon, List } from "lucide-react";
+import {
+  Database,
+  Plus,
+  Sun,
+  Moon,
+  List,
+  Shield,
+  ShieldAlert,
+} from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { ConnectionList } from "./components/ConnectionList";
 import { KeyBrowser } from "./components/KeyBrowser";
@@ -17,7 +25,13 @@ function App() {
   const [editingConnection, setEditingConnection] = useState<
     StoredConnection | undefined
   >(undefined);
-  const { activeConnectionId, connections, savedConnections } = useRedisStore();
+  const {
+    activeConnectionId,
+    connections,
+    savedConnections,
+    safeMode,
+    setSafeMode,
+  } = useRedisStore();
   const { theme, toggleTheme } = useTheme();
 
   useLoadConnections();
@@ -65,6 +79,28 @@ function App() {
 
           {/* Right Section - Actions */}
           <div className="flex items-center gap-3">
+            {activeConnectionId && (
+              <IconButton
+                onClick={() => setSafeMode(!safeMode)}
+                variant={safeMode ? "ghost" : "ghost"}
+                size="md"
+                title={
+                  safeMode
+                    ? "Safe mode enabled (read-only)"
+                    : "Safe mode disabled"
+                }
+                className={
+                  safeMode ? "text-success-light dark:text-success-dark" : ""
+                }
+              >
+                {safeMode ? (
+                  <Shield className="w-5 h-5" />
+                ) : (
+                  <ShieldAlert className="w-5 h-5" />
+                )}
+              </IconButton>
+            )}
+
             <IconButton
               onClick={toggleTheme}
               variant="ghost"

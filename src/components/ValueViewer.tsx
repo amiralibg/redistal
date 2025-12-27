@@ -7,6 +7,8 @@ import {
   FileJson,
   FileText,
   Database,
+  Edit2,
+  Copy,
 } from "lucide-react";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
@@ -23,6 +25,7 @@ export function ValueViewer() {
     setSelectedKey,
     setKeys,
     keys,
+    safeMode,
   } = useRedisStore();
   const { theme } = useTheme();
   const toast = useToast();
@@ -34,6 +37,10 @@ export function ValueViewer() {
   const [editingTtl, setEditingTtl] = useState(false);
   const [newTtl, setNewTtl] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [renamingKey, setRenamingKey] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [copyingKey, setCopyingKey] = useState(false);
+  const [copyKeyName, setCopyKeyName] = useState("");
 
   useEffect(() => {
     if (activeConnectionId && selectedKey) {
@@ -69,6 +76,14 @@ export function ValueViewer() {
   const handleSave = async () => {
     if (!activeConnectionId || !selectedKey) return;
 
+    if (safeMode) {
+      toast.warning(
+        "Safe mode enabled",
+        "Cannot modify values in safe mode. Disable safe mode to make changes.",
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       await redisApi.setValue(activeConnectionId, selectedKey, editedValue);
@@ -87,6 +102,15 @@ export function ValueViewer() {
   const confirmDelete = async () => {
     if (!activeConnectionId || !selectedKey) return;
 
+    if (safeMode) {
+      toast.warning(
+        "Safe mode enabled",
+        "Cannot delete keys in safe mode. Disable safe mode to make changes.",
+      );
+      setShowDeleteConfirm(false);
+      return;
+    }
+
     try {
       await redisApi.deleteKey(activeConnectionId, selectedKey);
       setKeys(keys.filter((k) => k !== selectedKey));
@@ -103,6 +127,15 @@ export function ValueViewer() {
 
   const handleSaveTtl = async () => {
     if (!activeConnectionId || !selectedKey) return;
+
+    if (safeMode) {
+      toast.warning(
+        "Safe mode enabled",
+        "Cannot modify TTL in safe mode. Disable safe mode to make changes.",
+      );
+      setEditingTtl(false);
+      return;
+    }
 
     const ttlValue = newTtl === "" ? -1 : parseInt(newTtl);
     if (isNaN(ttlValue)) return;
@@ -121,6 +154,95 @@ export function ValueViewer() {
         error instanceof Error ? error.message : "Failed to set TTL";
       console.error("Failed to set TTL:", error);
       toast.error("TTL update failed", errorMsg);
+    }
+  };
+
+  const handleRenameKey = async () => {
+    if (!activeConnectionId || !selectedKey || !newKeyName.trim()) return;
+
+    if (safeMode) {
+      toast.warning(
+        "Safe mode enabled",
+        "Cannot rename keys in safe mode. Disable safe mode to make changes.",
+      );
+      setRenamingKey(false);
+      return;
+    }
+
+    try {
+      await redisApi.executeCommand(
+        activeConnectionId,
+        `RENAME "${selectedKey.replace(/"/g, '\\"')}" "${newKeyName.trim().replace(/"/g, '\\"')}"`,
+      );
+
+      // Update keys list
+      const updatedKeys = keys.map((k) =>
+        k === selectedKey ? newKeyName.trim() : k,
+      );
+      setKeys(updatedKeys);
+      setSelectedKey(newKeyName.trim());
+      setRenamingKey(false);
+
+      toast.success(
+        "Key renamed",
+        `Renamed "${selectedKey}" to "${newKeyName.trim()}"`,
+      );
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to rename key";
+      toast.error("Rename failed", errorMsg);
+    }
+  };
+
+  const handleCopyKey = async () => {
+    if (!activeConnectionId || !selectedKey || !copyKeyName.trim()) return;
+
+    if (safeMode) {
+      toast.warning(
+        "Safe mode enabled",
+        "Cannot copy keys in safe mode. Disable safe mode to make changes.",
+      );
+      setCopyingKey(false);
+      return;
+    }
+
+    try {
+      // Use DUMP and RESTORE to copy the key with all its properties
+      const dumpResult = await redisApi.executeCommand(
+        activeConnectionId,
+        `DUMP "${selectedKey.replace(/"/g, '\\"')}"`,
+      );
+
+      if (dumpResult && dumpResult !== "(nil)") {
+        // Get TTL
+        const ttlResult = await redisApi.executeCommand(
+          activeConnectionId,
+          `PTTL "${selectedKey.replace(/"/g, '\\"')}"`,
+        );
+        const pttl = parseInt(ttlResult) > 0 ? parseInt(ttlResult) : 0;
+
+        // Restore to new key
+        await redisApi.executeCommand(
+          activeConnectionId,
+          `RESTORE "${copyKeyName.trim().replace(/"/g, '\\"')}" ${pttl} ${dumpResult}`,
+        );
+      }
+
+      // Add to keys list and select
+      if (!keys.includes(copyKeyName.trim())) {
+        setKeys([...keys, copyKeyName.trim()]);
+      }
+      setSelectedKey(copyKeyName.trim());
+      setCopyingKey(false);
+
+      toast.success(
+        "Key copied",
+        `Created copy "${copyKeyName.trim()}" from "${selectedKey}"`,
+      );
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to copy key";
+      toast.error("Copy failed", errorMsg);
     }
   };
 
@@ -158,11 +280,53 @@ export function ValueViewer() {
         {/* Key Info */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white font-mono truncate">
-                {selectedKey}
-              </h3>
-            </div>
+            {renamingKey ? (
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  type="text"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="New key name"
+                  className="flex-1"
+                  autoFocus
+                />
+                <Button
+                  onClick={handleRenameKey}
+                  variant="primary"
+                  size="sm"
+                  disabled={!newKeyName.trim() || safeMode}
+                >
+                  Save
+                </Button>
+                <Button
+                  onClick={() => {
+                    setRenamingKey(false);
+                    setNewKeyName("");
+                  }}
+                  variant="ghost"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white font-mono truncate">
+                  {selectedKey}
+                </h3>
+                <button
+                  onClick={() => {
+                    setRenamingKey(true);
+                    setNewKeyName(selectedKey);
+                  }}
+                  className="p-1 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
+                  title="Rename key"
+                  disabled={safeMode}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             {selectedKeyInfo && (
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge
@@ -206,15 +370,60 @@ export function ValueViewer() {
                 loading={saving}
                 variant="primary"
                 size="sm"
+                disabled={safeMode}
               >
                 <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save"}
+              </Button>
+            )}
+            {copyingKey ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  value={copyKeyName}
+                  onChange={(e) => setCopyKeyName(e.target.value)}
+                  placeholder="New key name"
+                  className="w-48"
+                  autoFocus
+                />
+                <Button
+                  onClick={handleCopyKey}
+                  variant="primary"
+                  size="sm"
+                  disabled={!copyKeyName.trim() || safeMode}
+                >
+                  Copy
+                </Button>
+                <Button
+                  onClick={() => {
+                    setCopyingKey(false);
+                    setCopyKeyName("");
+                  }}
+                  variant="ghost"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => {
+                  setCopyingKey(true);
+                  setCopyKeyName(`${selectedKey}_copy`);
+                }}
+                variant="secondary"
+                size="sm"
+                disabled={safeMode}
+              >
+                <Copy className="w-4 h-4" />
+                Copy
               </Button>
             )}
             <Button
               onClick={() => setShowDeleteConfirm(true)}
               variant="danger"
               size="sm"
+              disabled={safeMode}
             >
               <Trash2 className="w-4 h-4" />
               Delete
@@ -234,7 +443,12 @@ export function ValueViewer() {
                 placeholder="TTL in seconds (-1 for no expiry)"
                 className="flex-1 max-w-xs"
               />
-              <Button onClick={handleSaveTtl} variant="primary" size="sm">
+              <Button
+                onClick={handleSaveTtl}
+                variant="primary"
+                size="sm"
+                disabled={safeMode}
+              >
                 Save
               </Button>
               <Button
@@ -283,14 +497,22 @@ export function ValueViewer() {
               Loading value...
             </p>
           </div>
-        ) : (
+        ) : selectedKeyInfo?.key_type === "string" ||
+          selectedKeyInfo?.key_type === "hash" ||
+          selectedKeyInfo?.key_type === "list" ||
+          selectedKeyInfo?.key_type === "set" ||
+          selectedKeyInfo?.key_type === "zset" ||
+          selectedKeyInfo?.key_type === "stream" ? (
           <Editor
             height="100%"
-            language={getLanguage()}
+            language={
+              selectedKeyInfo?.key_type === "string" ? getLanguage() : "json"
+            }
             value={editedValue}
             onChange={(val) => setEditedValue(val || "")}
             theme={theme === "dark" ? "vs-dark" : "light"}
             options={{
+              readOnly: selectedKeyInfo?.key_type !== "string" || safeMode,
               minimap: { enabled: false },
               fontSize: 14,
               fontFamily:
@@ -305,6 +527,75 @@ export function ValueViewer() {
               padding: { top: 16, bottom: 16 },
             }}
           />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-neutral-50 dark:bg-neutral-950">
+            <FileText className="w-16 h-16 text-neutral-400 dark:text-neutral-600 mb-4" />
+            <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+              {selectedKeyInfo?.key_type?.toUpperCase() || "UNSUPPORTED"} Type
+            </h3>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-md mb-4">
+              Type-aware viewers for {selectedKeyInfo?.key_type || "this type"},
+              hash, list, set, and zset are coming soon!
+            </p>
+            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-6">
+              For now, use the CLI panel to interact with this key type.
+            </p>
+            <div className="flex flex-col gap-2 w-full max-w-md p-4 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+              <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide mb-1">
+                Common Commands:
+              </p>
+              {selectedKeyInfo?.key_type === "hash" && (
+                <>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    HGETALL {selectedKey}
+                  </code>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    HSET {selectedKey} field value
+                  </code>
+                </>
+              )}
+              {selectedKeyInfo?.key_type === "list" && (
+                <>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    LRANGE {selectedKey} 0 -1
+                  </code>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    LPUSH {selectedKey} value
+                  </code>
+                </>
+              )}
+              {selectedKeyInfo?.key_type === "set" && (
+                <>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    SMEMBERS {selectedKey}
+                  </code>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    SADD {selectedKey} member
+                  </code>
+                </>
+              )}
+              {selectedKeyInfo?.key_type === "zset" && (
+                <>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    ZRANGE {selectedKey} 0 -1 WITHSCORES
+                  </code>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    ZADD {selectedKey} score member
+                  </code>
+                </>
+              )}
+              {selectedKeyInfo?.key_type === "stream" && (
+                <>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    XRANGE {selectedKey} - +
+                  </code>
+                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+                    XADD {selectedKey} * field value
+                  </code>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

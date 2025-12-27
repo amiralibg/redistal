@@ -22,8 +22,72 @@ const DANGEROUS_COMMANDS = [
   "BGSAVE",
 ];
 
+const WRITE_COMMANDS = [
+  "SET",
+  "SETEX",
+  "SETNX",
+  "PSETEX",
+  "APPEND",
+  "INCR",
+  "INCRBY",
+  "INCRBYFLOAT",
+  "DECR",
+  "DECRBY",
+  "DEL",
+  "UNLINK",
+  "EXPIRE",
+  "EXPIREAT",
+  "PERSIST",
+  "PEXPIRE",
+  "PEXPIREAT",
+  "RENAME",
+  "RENAMENX",
+  "LPUSH",
+  "RPUSH",
+  "LPOP",
+  "RPOP",
+  "LSET",
+  "LINSERT",
+  "LREM",
+  "LTRIM",
+  "SADD",
+  "SREM",
+  "SPOP",
+  "SMOVE",
+  "ZADD",
+  "ZREM",
+  "ZINCRBY",
+  "ZREMRANGEBYRANK",
+  "ZREMRANGEBYSCORE",
+  "HSET",
+  "HSETNX",
+  "HMSET",
+  "HINCRBY",
+  "HINCRBYFLOAT",
+  "HDEL",
+  "FLUSHDB",
+  "FLUSHALL",
+  "RESTORE",
+  "MIGRATE",
+  "MOVE",
+  "SWAPDB",
+  "GETSET",
+  "SETRANGE",
+  "BITOP",
+  "SETBIT",
+  "PFADD",
+  "PFMERGE",
+  "GEOADD",
+  "XADD",
+  "XTRIM",
+  "XDEL",
+  "XGROUP",
+  "XACK",
+  "XCLAIM",
+];
+
 export function CliPanel() {
-  const { activeConnectionId } = useRedisStore();
+  const { activeConnectionId, safeMode } = useRedisStore();
   const toast = useToast();
   const [command, setCommand] = useState("");
   const [history, setHistory] = useState<CommandHistory[]>([]);
@@ -78,6 +142,16 @@ export function CliPanel() {
     const cmd = command.trim();
     const cmdUpper = cmd.toUpperCase();
     const firstWord = cmdUpper.split(" ")[0];
+
+    // Check if safe mode is enabled and command is a write operation
+    if (safeMode && WRITE_COMMANDS.includes(firstWord)) {
+      toast.warning(
+        "Safe mode enabled",
+        `Cannot execute write command "${firstWord}" in safe mode. Disable safe mode to make changes.`,
+      );
+      setCommand("");
+      return;
+    }
 
     // Check if it's a dangerous command
     if (DANGEROUS_COMMANDS.includes(firstWord)) {

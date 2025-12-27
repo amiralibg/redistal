@@ -162,6 +162,18 @@ pub async fn get_value(
                 conn.hgetall(&key).map_err(|e| e.to_string())?;
             serde_json::to_string_pretty(&val).unwrap()
         }
+        "stream" => {
+            // Use XRANGE to get all stream entries
+            let result: redis::Value = redis::cmd("XRANGE")
+                .arg(&key)
+                .arg("-")
+                .arg("+")
+                .query(&mut conn)
+                .map_err(|e| e.to_string())?;
+
+            // Format the stream data as JSON
+            format!("{:?}", result)
+        }
         _ => String::from("Unsupported type"),
     };
 

@@ -9,6 +9,7 @@ interface RedisStore {
   selectedKey: string | null;
   selectedKeyInfo: RedisKey | null;
   searchPattern: string;
+  safeMode: boolean;
 
   setConnections: (connections: ConnectionConfig[]) => void;
   addConnection: (connection: ConnectionConfig) => void;
@@ -20,6 +21,7 @@ interface RedisStore {
   setSelectedKey: (key: string | null) => void;
   setSelectedKeyInfo: (info: RedisKey | null) => void;
   setSearchPattern: (pattern: string) => void;
+  setSafeMode: (enabled: boolean) => void;
 }
 
 export const useRedisStore = create<RedisStore>((set) => ({
@@ -30,6 +32,7 @@ export const useRedisStore = create<RedisStore>((set) => ({
   selectedKey: null,
   selectedKeyInfo: null,
   searchPattern: "*",
+  safeMode: false,
 
   setConnections: (connections) => set({ connections }),
   addConnection: (connection) =>
@@ -51,4 +54,5 @@ export const useRedisStore = create<RedisStore>((set) => ({
   setSelectedKey: (key) => set({ selectedKey: key }),
   setSelectedKeyInfo: (info) => set({ selectedKeyInfo: info }),
   setSearchPattern: (pattern) => set({ searchPattern: pattern }),
+  setSafeMode: (enabled) => set({ safeMode: enabled }),
 }));
