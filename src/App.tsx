@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Database,
   Plus,
@@ -7,21 +7,26 @@ import {
   List,
   Shield,
   ShieldAlert,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { ConnectionList } from "./components/ConnectionList";
 import { KeyBrowser } from "./components/KeyBrowser";
 import { ValueViewer } from "./components/ValueViewer";
 import { CliPanel } from "./components/CliPanel";
+import { CommandPalette, CommandAction } from "./components/CommandPalette";
 import { useRedisStore } from "./store/useRedisStore";
 import { useTheme } from "./lib/theme-context";
 import { useLoadConnections } from "./hooks/useLoadConnections";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { Button, IconButton, Badge } from "./components/ui";
 import type { StoredConnection } from "./types/redis";
 
 function App() {
   const [showConnectionDialog, setShowConnectionDialog] = useState(false);
   const [showConnectionList, setShowConnectionList] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [editingConnection, setEditingConnection] = useState<
     StoredConnection | undefined
   >(undefined);
@@ -34,9 +39,145 @@ function App() {
   } = useRedisStore();
   const { theme, toggleTheme } = useTheme();
 
+  // Refs for triggering actions from keyboard shortcuts
+  const refreshKeysRef = useRef<(() => void) | null>(null);
+  const focusSearchRef = useRef<(() => void) | null>(null);
+
   useLoadConnections();
 
   const activeConnection = connections.find((c) => c.id === activeConnectionId);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: "k",
+      ctrl: true,
+      meta: true,
+      description: "Focus search",
+      handler: () => {
+        if (focusSearchRef.current) {
+          focusSearchRef.current();
+        }
+      },
+    },
+    {
+      key: "r",
+      ctrl: true,
+      meta: true,
+      description: "Refresh keys",
+      handler: () => {
+        if (activeConnectionId && refreshKeysRef.current) {
+          refreshKeysRef.current();
+        }
+      },
+    },
+    {
+      key: "n",
+      ctrl: true,
+      meta: true,
+      description: "New connection",
+      handler: () => {
+        setShowConnectionDialog(true);
+      },
+    },
+    {
+      key: "p",
+      ctrl: true,
+      meta: true,
+      description: "Open command palette",
+      handler: () => {
+        setShowCommandPalette(true);
+      },
+    },
+    {
+      key: "Escape",
+      description: "Close dialogs",
+      handler: () => {
+        if (showCommandPalette) {
+          setShowCommandPalette(false);
+        } else if (showConnectionDialog) {
+          setShowConnectionDialog(false);
+          setEditingConnection(undefined);
+        } else if (showConnectionList) {
+          setShowConnectionList(false);
+        }
+      },
+    },
+  ]);
+
+  // Command palette actions
+  const commandActions: CommandAction[] = [
+    {
+      id: "new-connection",
+      label: "New Connection",
+      description: "Create a new Redis connection",
+      icon: <Plus className="w-4 h-4" />,
+      shortcut: "⌘N",
+      keywords: ["connect", "add", "create"],
+      action: () => setShowConnectionDialog(true),
+    },
+    {
+      id: "show-connections",
+      label: "Show Connections",
+      description: "View all saved connections",
+      icon: <List className="w-4 h-4" />,
+      keywords: ["list", "saved", "bookmarks"],
+      action: () => setShowConnectionList(true),
+    },
+    {
+      id: "refresh-keys",
+      label: "Refresh Keys",
+      description: "Reload keys from Redis",
+      icon: <RefreshCw className="w-4 h-4" />,
+      shortcut: "⌘R",
+      keywords: ["reload", "update"],
+      action: () => {
+        if (refreshKeysRef.current) {
+          refreshKeysRef.current();
+        }
+      },
+    },
+    {
+      id: "focus-search",
+      label: "Focus Search",
+      description: "Focus the key search input",
+      icon: <Search className="w-4 h-4" />,
+      shortcut: "⌘K",
+      keywords: ["find", "filter"],
+      action: () => {
+        if (focusSearchRef.current) {
+          focusSearchRef.current();
+        }
+      },
+    },
+    {
+      id: "toggle-theme",
+      label: "Toggle Theme",
+      description: `Switch to ${theme === "light" ? "dark" : "light"} mode`,
+      icon:
+        theme === "light" ? (
+          <Moon className="w-4 h-4" />
+        ) : (
+          <Sun className="w-4 h-4" />
+        ),
+      keywords: ["dark", "light", "appearance"],
+      action: () => toggleTheme(),
+    },
+    {
+      id: "toggle-safe-mode",
+      label: safeMode ? "Disable Safe Mode" : "Enable Safe Mode",
+      description: safeMode
+        ? "Allow write operations"
+        : "Prevent accidental writes and deletes",
+      icon: safeMode ? (
+        <ShieldAlert className="w-4 h-4" />
+      ) : (
+        <Shield className="w-4 h-4" />
+      ),
+      keywords: ["readonly", "write", "protect"],
+      action: () => setSafeMode(!safeMode),
+    },
+  ];
 
   return (
     <div className="h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950">
@@ -141,7 +282,10 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar - Key Browser */}
         <div className="w-80 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-          <KeyBrowser />
+          <KeyBrowser
+            onRefreshKeysRef={refreshKeysRef}
+            onFocusSearchRef={focusSearchRef}
+          />
         </div>
 
         {/* Main Panel */}
@@ -177,6 +321,13 @@ function App() {
           setShowConnectionList(false);
           setShowConnectionDialog(true);
         }}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        actions={commandActions}
       />
     </div>
   );

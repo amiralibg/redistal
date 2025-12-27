@@ -6,6 +6,13 @@ use std::collections::HashSet;
 use std::sync::Mutex;
 use tauri::State;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScanResult {
+    pub keys: Vec<String>,
+    pub cursor: u64,
+    pub has_more: bool,
+}
+
 pub struct AppState {
     pub redis_manager: Mutex<RedisConnectionManager>,
     pub connection_store: Mutex<ConnectionStore>,
@@ -90,6 +97,37 @@ pub async fn get_keys(
     let mut keys: Vec<String> = seen.into_iter().collect();
     keys.sort();
     Ok(keys)
+}
+
+#[tauri::command]
+pub async fn scan_keys(
+    connection_id: String,
+    pattern: String,
+    cursor: u64,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<ScanResult, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    // Execute SCAN command with provided cursor
+    let (next_cursor, batch): (u64, Vec<String>) = redis::cmd("SCAN")
+        .arg(cursor)
+        .arg("MATCH")
+        .arg(&pattern)
+        .arg("COUNT")
+        .arg(count)
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    Ok(ScanResult {
+        keys: batch,
+        cursor: next_cursor,
+        has_more: next_cursor != 0,
+    })
 }
 
 #[tauri::command]
@@ -333,4 +371,96 @@ pub async fn get_connection_password(
         .password_store
         .get_password(&connection_id)
         .map_err(|e| format!("Failed to get password: {}", e))
+}
+
+#[tauri::command]
+pub async fn test_connection(config: ConnectionConfig) -> Result<ConnectionStatus, String> {
+    // Build connection string
+    let protocol = if config.use_tls { "rediss" } else { "redis" };
+
+    let url = if let Some(username) = &config.username {
+        if let Some(password) = &config.password {
+            format!(
+                "{}://{}:{}@{}:{}/{}",
+                protocol, username, password, config.host, config.port, config.database
+            )
+        } else {
+            format!(
+                "{}://{}@{}:{}/{}",
+                protocol, username, config.host, config.port, config.database
+            )
+        }
+    } else if let Some(password) = &config.password {
+        format!(
+            "{}://:{}@{}:{}/{}",
+            protocol, password, config.host, config.port, config.database
+        )
+    } else {
+        format!(
+            "{}://{}:{}/{}",
+            protocol, config.host, config.port, config.database
+        )
+    };
+
+    // Try to connect
+    let client = redis::Client::open(url).map_err(|e| format!("Invalid connection URL: {}", e))?;
+
+    let mut conn = client
+        .get_connection()
+        .map_err(|e| format!("Connection failed: {}", e))?;
+
+    // Test with PING command
+    redis::cmd("PING")
+        .query::<String>(&mut conn)
+        .map_err(|e| format!("PING failed: {}", e))?;
+
+    Ok(ConnectionStatus {
+        id: config.id,
+        connected: true,
+        error: None,
+    })
+}
+
+#[tauri::command]
+pub async fn get_key_memory_usage(
+    connection_id: String,
+    key: String,
+    state: State<'_, AppState>,
+) -> Result<Option<usize>, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    // Use MEMORY USAGE command to get approximate memory usage in bytes
+    let result: redis::RedisResult<Option<usize>> =
+        redis::cmd("MEMORY").arg("USAGE").arg(&key).query(&mut conn);
+
+    match result {
+        Ok(size) => Ok(size),
+        Err(_) => {
+            // Fallback: MEMORY USAGE might not be available in older Redis versions
+            // Try to estimate based on DEBUG OBJECT (less accurate)
+            let debug_result: redis::RedisResult<String> =
+                redis::cmd("DEBUG").arg("OBJECT").arg(&key).query(&mut conn);
+
+            match debug_result {
+                Ok(debug_info) => {
+                    // Parse serializedlength from DEBUG OBJECT output
+                    // Format: "Value at:0x... refcount:1 encoding:... serializedlength:123 ..."
+                    if let Some(pos) = debug_info.find("serializedlength:") {
+                        let size_str = &debug_info[pos + 17..];
+                        if let Some(end) = size_str.find(' ') {
+                            if let Ok(size) = size_str[..end].parse::<usize>() {
+                                return Ok(Some(size));
+                            }
+                        }
+                    }
+                    Ok(None)
+                }
+                Err(_) => Ok(None),
+            }
+        }
+    }
 }

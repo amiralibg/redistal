@@ -41,13 +41,20 @@ export function ValueViewer() {
   const [newKeyName, setNewKeyName] = useState("");
   const [copyingKey, setCopyingKey] = useState(false);
   const [copyKeyName, setCopyKeyName] = useState("");
+  const [keySize, setKeySize] = useState<number | null>(null);
+  const [showSizeWarning, setShowSizeWarning] = useState(false);
+
+  // Size threshold: 1MB
+  const SIZE_THRESHOLD = 1024 * 1024;
 
   useEffect(() => {
     if (activeConnectionId && selectedKey) {
-      loadValue();
+      checkSizeAndLoad();
     } else {
       setValue("");
       setEditedValue("");
+      setKeySize(null);
+      setShowSizeWarning(false);
     }
   }, [activeConnectionId, selectedKey]);
 
@@ -58,6 +65,37 @@ export function ValueViewer() {
     }
   }, [selectedKeyInfo]);
 
+  const checkSizeAndLoad = async () => {
+    if (!activeConnectionId || !selectedKey) return;
+
+    setLoading(true);
+    setShowSizeWarning(false);
+
+    try {
+      // First, check the memory usage
+      const memoryUsage = await redisApi.getKeyMemoryUsage(
+        activeConnectionId,
+        selectedKey,
+      );
+
+      setKeySize(memoryUsage);
+
+      // If size is larger than threshold, show warning and don't auto-load
+      if (memoryUsage && memoryUsage > SIZE_THRESHOLD) {
+        setShowSizeWarning(true);
+        setLoading(false);
+        return;
+      }
+
+      // Size is acceptable, load the value
+      await loadValue();
+    } catch (error) {
+      console.error("Failed to check size:", error);
+      // If size check fails, just load the value anyway
+      await loadValue();
+    }
+  };
+
   const loadValue = async () => {
     if (!activeConnectionId || !selectedKey) return;
 
@@ -66,11 +104,17 @@ export function ValueViewer() {
       const result = await redisApi.getValue(activeConnectionId, selectedKey);
       setValue(result.value);
       setEditedValue(result.value);
+      setShowSizeWarning(false);
     } catch (error) {
       console.error("Failed to load value:", error);
+      toast.error("Load failed", "Failed to load key value");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForceLoad = async () => {
+    await loadValue();
   };
 
   const handleSave = async () => {
@@ -352,6 +396,18 @@ export function ValueViewer() {
                     {selectedKeyInfo.size === 1 ? "item" : "items"}
                   </Badge>
                 )}
+                {keySize !== null && (
+                  <Badge
+                    variant={keySize > SIZE_THRESHOLD ? "warning" : "default"}
+                    size="sm"
+                  >
+                    {keySize < 1024
+                      ? `${keySize} B`
+                      : keySize < 1024 * 1024
+                        ? `${(keySize / 1024).toFixed(1)} KB`
+                        : `${(keySize / 1024 / 1024).toFixed(2)} MB`}
+                  </Badge>
+                )}
                 {getLanguage() === "json" && (
                   <Badge variant="success" size="sm">
                     <FileJson className="w-3 h-3 mr-1" />
@@ -490,7 +546,33 @@ export function ValueViewer() {
 
       {/* Editor */}
       <div className="flex-1 overflow-hidden">
-        {loading ? (
+        {showSizeWarning ? (
+          <div className="flex flex-col items-center justify-center h-full p-8 bg-warning-50 dark:bg-warning-950/20">
+            <div className="max-w-md text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-warning-100 dark:bg-warning-900/30 rounded-full flex items-center justify-center">
+                <Database className="w-8 h-8 text-warning-600 dark:text-warning-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                Large Value Warning
+              </h3>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                This key contains a large value (
+                {keySize
+                  ? `${(keySize / 1024 / 1024).toFixed(2)} MB`
+                  : "size unknown"}
+                ). Loading it may slow down the application.
+              </p>
+              <div className="flex gap-3 justify-center pt-2">
+                <Button onClick={handleForceLoad} variant="primary">
+                  Load Anyway
+                </Button>
+                <Button onClick={() => setSelectedKey(null)} variant="outline">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center h-full">
             <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mb-3" />
             <p className="text-sm text-neutral-500 dark:text-neutral-400">

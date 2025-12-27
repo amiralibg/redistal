@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { Dialog } from './Dialog';
-import { Button } from './Button';
+import { ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
+import { Dialog } from "./Dialog";
+import { Button } from "./Button";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface ConfirmDialogProps {
   message: string | ReactNode;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'primary';
+  variant?: "danger" | "warning" | "primary";
   isLoading?: boolean;
 }
 
@@ -21,9 +21,9 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'danger',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  variant = "danger",
   isLoading = false,
 }: ConfirmDialogProps) {
   const handleConfirm = () => {
@@ -39,25 +39,25 @@ export function ConfirmDialog({
         <div className="flex items-start gap-3">
           <div
             className={`p-2 rounded-lg ${
-              variant === 'danger'
-                ? 'bg-error-light/10 dark:bg-error-dark/10'
-                : variant === 'warning'
-                  ? 'bg-warning-light/10 dark:bg-warning-dark/10'
-                  : 'bg-brand-50 dark:bg-brand-900/20'
+              variant === "danger"
+                ? "bg-error-light/10 dark:bg-error-dark/10"
+                : variant === "warning"
+                  ? "bg-warning-light/10 dark:bg-warning-dark/10"
+                  : "bg-brand-50 dark:bg-brand-900/20"
             }`}
           >
             <AlertTriangle
               className={`w-5 h-5 ${
-                variant === 'danger'
-                  ? 'text-error-light dark:text-error-dark'
-                  : variant === 'warning'
-                    ? 'text-warning-light dark:text-warning-dark'
-                    : 'text-brand-600 dark:text-brand-400'
+                variant === "danger"
+                  ? "text-error-light dark:text-error-dark"
+                  : variant === "warning"
+                    ? "text-warning-light dark:text-warning-dark"
+                    : "text-brand-600 dark:text-brand-400"
               }`}
             />
           </div>
           <div className="flex-1">
-            {typeof message === 'string' ? (
+            {typeof message === "string" ? (
               <p className="text-sm text-neutral-700 dark:text-neutral-300">
                 {message}
               </p>
@@ -73,7 +73,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            variant={variant}
+            variant={variant === "warning" ? "primary" : variant}
             loading={isLoading}
           >
             {confirmText}

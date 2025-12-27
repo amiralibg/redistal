@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Plus,
   FileText,
   List as ListIcon,
   Hash,

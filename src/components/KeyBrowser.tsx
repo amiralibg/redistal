@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, MutableRefObject } from "react";
 import { Search, RefreshCw, Key, Database, Plus } from "lucide-react";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
@@ -6,7 +6,15 @@ import { Input, IconButton, Badge, Button } from "./ui";
 import { CreateKeyDialog } from "./CreateKeyDialog";
 import clsx from "clsx";
 
-export function KeyBrowser() {
+interface KeyBrowserProps {
+  onRefreshKeysRef?: MutableRefObject<(() => void) | null>;
+  onFocusSearchRef?: MutableRefObject<(() => void) | null>;
+}
+
+export function KeyBrowser({
+  onRefreshKeysRef,
+  onFocusSearchRef,
+}: KeyBrowserProps = {}) {
   const {
     activeConnectionId,
     keys,
@@ -21,6 +29,7 @@ export function KeyBrowser() {
   const [loading, setLoading] = useState(false);
   const [localPattern, setLocalPattern] = useState(searchPattern);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const loadKeys = async () => {
     if (!activeConnectionId) return;
@@ -44,6 +53,19 @@ export function KeyBrowser() {
       loadKeys();
     }
   }, [activeConnectionId, searchPattern]);
+
+  // Expose methods via refs for keyboard shortcuts
+  useEffect(() => {
+    if (onRefreshKeysRef) {
+      onRefreshKeysRef.current = loadKeys;
+    }
+    if (onFocusSearchRef) {
+      onFocusSearchRef.current = () => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      };
+    }
+  }, [onRefreshKeysRef, onFocusSearchRef]);
 
   const handleKeyClick = async (key: string) => {
     if (!activeConnectionId) return;
@@ -112,6 +134,7 @@ export function KeyBrowser() {
         {/* Search */}
         <form onSubmit={handleSearch}>
           <Input
+            ref={searchInputRef}
             type="text"
             value={localPattern}
             onChange={(e) => setLocalPattern(e.target.value)}

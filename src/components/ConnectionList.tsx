@@ -18,8 +18,13 @@ export function ConnectionList({
   onClose,
   onEditConnection,
 }: ConnectionListProps) {
-  const { savedConnections, removeSavedConnection, activeConnectionId } =
-    useRedisStore();
+  const {
+    savedConnections,
+    removeSavedConnection,
+    activeConnectionId,
+    addConnection,
+    setActiveConnection,
+  } = useRedisStore();
   const toast = useToast();
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -33,21 +38,32 @@ export function ConnectionList({
       // Get password from keychain
       const password = await redisApi.getConnectionPassword(connection.id);
 
-      // Connect to Redis
-      await redisApi.connectToRedis({
+      // Build full config with password
+      const config = {
         ...connection,
         password: password || undefined,
-      });
+      };
+
+      // Connect to Redis
+      const status = await redisApi.connect(config);
+
+      if (!status.connected) {
+        throw new Error(status.error || "Connection failed");
+      }
+
+      // Add to active connections and set as active
+      addConnection(config);
+      setActiveConnection(connection.id);
 
       toast.success(
         "Connected",
-        `Successfully connected to ${connection.name}`
+        `Successfully connected to ${connection.name}`,
       );
       onClose();
     } catch (error) {
       toast.error(
         "Connection failed",
-        error instanceof Error ? error.message : "Failed to connect"
+        error instanceof Error ? error.message : "Failed to connect",
       );
     } finally {
       setConnectingId(null);
@@ -59,14 +75,14 @@ export function ConnectionList({
 
     try {
       const success = await redisApi.deleteSavedConnection(
-        deleteConfirm.connection.id
+        deleteConfirm.connection.id,
       );
 
       if (success) {
         removeSavedConnection(deleteConfirm.connection.id);
         toast.success(
           "Connection deleted",
-          `Removed ${deleteConfirm.connection.name} from saved connections`
+          `Removed ${deleteConfirm.connection.name} from saved connections`,
         );
       } else {
         toast.error("Delete failed", "Failed to delete connection");
@@ -74,7 +90,7 @@ export function ConnectionList({
     } catch (error) {
       toast.error(
         "Delete failed",
-        error instanceof Error ? error.message : "Failed to delete connection"
+        error instanceof Error ? error.message : "Failed to delete connection",
       );
     } finally {
       setDeleteConfirm({ show: false, connection: null });

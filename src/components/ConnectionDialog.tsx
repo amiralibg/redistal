@@ -33,6 +33,8 @@ export function ConnectionDialog({
   const [saveConnection, setSaveConnection] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testSuccess, setTestSuccess] = useState(false);
 
   // Populate form when editing a connection
   useEffect(() => {
@@ -60,8 +62,46 @@ export function ConnectionDialog({
       });
       setSaveConnection(true);
       setError("");
+      setTestSuccess(false);
     }
   }, [editConnection, isOpen]);
+
+  const handleTestConnection = async () => {
+    setError("");
+    setTestSuccess(false);
+    setTesting(true);
+
+    try {
+      const config: ConnectionConfig = {
+        id: crypto.randomUUID(), // Temporary ID for testing
+        name: formData.name,
+        host: formData.host,
+        port: formData.port,
+        username: formData.username || undefined,
+        password: formData.password || undefined,
+        database: formData.database,
+        use_tls: formData.use_tls,
+      };
+
+      const status = await redisApi.testConnection(config);
+
+      if (status.connected) {
+        setTestSuccess(true);
+        toast.success("Connection successful", "Test connection succeeded");
+      } else {
+        const errorMsg = status.error || "Connection test failed";
+        setError(errorMsg);
+        toast.error("Connection test failed", errorMsg);
+      }
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Connection test failed";
+      setError(errorMsg);
+      toast.error("Connection test failed", errorMsg);
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,6 +329,15 @@ export function ConnectionDialog({
           </label>
         </div>
 
+        {/* Test Connection Success Message */}
+        {testSuccess && (
+          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg animate-slide-down">
+            <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+              ✓ Connection test successful
+            </p>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-slide-down">
@@ -308,13 +357,24 @@ export function ConnectionDialog({
           >
             Cancel
           </Button>
+          {!editConnection && (
+            <Button
+              type="button"
+              onClick={handleTestConnection}
+              variant="outline"
+              loading={testing}
+              className="flex-1"
+            >
+              {testing ? "Testing..." : "Test Connection"}
+            </Button>
+          )}
           <Button
             type="submit"
             variant="primary"
             loading={loading}
             className="flex-1"
           >
-            {loading ? "Connecting..." : "Connect"}
+            {loading ? "Connecting..." : editConnection ? "Update" : "Connect"}
           </Button>
         </div>
       </form>

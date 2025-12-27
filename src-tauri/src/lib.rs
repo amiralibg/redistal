@@ -29,6 +29,7 @@ pub fn run() {
             commands::connect_to_redis,
             commands::disconnect_from_redis,
             commands::get_keys,
+            commands::scan_keys,
             commands::get_key_info,
             commands::get_value,
             commands::set_value,
@@ -39,6 +40,8 @@ pub fn run() {
             commands::load_connections,
             commands::delete_saved_connection,
             commands::get_connection_password,
+            commands::test_connection,
+            commands::get_key_memory_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -37,6 +37,12 @@ export interface RedisValue {
   key_type: string;
 }
 
+export interface ScanResult {
+  keys: string[];
+  cursor: number;
+  has_more: boolean;
+}
+
 export type RedisDataType =
   | "string"
   | "list"

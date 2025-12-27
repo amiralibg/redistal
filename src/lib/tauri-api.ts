@@ -5,6 +5,7 @@ import {
   RedisKey,
   RedisValue,
   StoredConnection,
+  ScanResult,
 } from "../types/redis";
 
 export const redisApi = {
@@ -18,6 +19,15 @@ export const redisApi = {
 
   async getKeys(connectionId: string, pattern: string): Promise<string[]> {
     return invoke("get_keys", { connectionId, pattern });
+  },
+
+  async scanKeys(
+    connectionId: string,
+    pattern: string,
+    cursor: number,
+    count: number,
+  ): Promise<ScanResult> {
+    return invoke("scan_keys", { connectionId, pattern, cursor, count });
   },
 
   async getKeyInfo(connectionId: string, key: string): Promise<RedisKey> {
@@ -63,5 +73,16 @@ export const redisApi = {
 
   async getConnectionPassword(connectionId: string): Promise<string | null> {
     return invoke("get_connection_password", { connectionId });
+  },
+
+  async testConnection(config: ConnectionConfig): Promise<ConnectionStatus> {
+    return invoke("test_connection", { config });
+  },
+
+  async getKeyMemoryUsage(
+    connectionId: string,
+    key: string,
+  ): Promise<number | null> {
+    return invoke("get_key_memory_usage", { connectionId, key });
   },
 };
