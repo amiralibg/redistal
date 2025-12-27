@@ -2,6 +2,14 @@
 
 This file tracks planned features and tech-debt items for the Redis GUI.
 
+## Recently Completed (Latest Session)
+
+- [x] **Test Connection Before Saving** - Validate connections with PING before saving to prevent broken configs
+- [x] **Size-Aware Value Loading** - Check memory usage (1MB threshold) and warn before loading large values
+- [x] **Cursor-Based Key Pagination** - Non-blocking SCAN with "Load More" button (100 keys/batch)
+- [x] **Global Keyboard Shortcuts** - Cmd+K (search), Cmd+R (refresh), Cmd+N (new), Cmd+P (palette), Esc (close)
+- [x] **Command Palette** - Searchable quick action menu with fuzzy matching and keyboard navigation
+
 ## Done
 
 - [x] Replace `KEYS` with `SCAN` in key listing (prevents blocking on large datasets)
@@ -26,7 +34,7 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [x] Edit saved connections
   - [x] Delete saved connections
   - [x] Load saved connections on startup
-  - [ ] Test connection before saving
+  - [x] Test connection before saving
   - [ ] Connection groups/folders for organization
 - [x] **Safety Features**
   - [x] Read-only / safe mode toggle (prevent accidental writes/deletes)
@@ -34,17 +42,16 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [ ] Confirmation for bulk operations
   - [x] Dangerous command warnings (FLUSHDB, FLUSHALL, etc.)
 
-## Next (High Priority)
-
 ## Data & Performance
 
-- [ ] Cursor-based paging for key browsing (`SCAN` cursor in UI) + list virtualization
+- [x] Cursor-based paging for key browsing (`SCAN` cursor in UI) with Load More button
+- [ ] List virtualization for rendering thousands of keys
 - [ ] Replace global refresh with incremental loading + cancel support
-- [ ] Avoid loading huge values by default:
-  - [ ] Size-aware loading (show size before loading large values)
+- [x] Avoid loading huge values by default:
+  - [x] Size-aware loading (show size before loading large values)
+  - [x] Configurable max value size threshold (1MB)
   - [ ] Fetch ranges for lists/sets/zsets (paginated viewing)
   - [ ] Stream large string values
-  - [ ] Configurable max value size threshold
 - [ ] Background key count refresh (non-blocking)
 - [ ] Debounced search input
 - [ ] Cache frequently accessed keys/values
@@ -146,15 +153,19 @@ This file tracks planned features and tech-debt items for the Redis GUI.
 
 ## Developer Experience
 
-- [ ] Keyboard shortcuts:
-  - [ ] Global search focus (Cmd/Ctrl + K)
+- [x] Keyboard shortcuts:
+  - [x] Global search focus (Cmd/Ctrl + K)
+  - [x] New connection (Cmd/Ctrl + N)
+  - [x] Refresh keys (Cmd/Ctrl + R)
+  - [x] Quick command palette (Cmd/Ctrl + P)
+  - [x] Close dialogs (Escape)
   - [ ] Next/prev key navigation (↑/↓)
   - [ ] Run CLI command (Enter in CLI)
   - [ ] Toggle CLI panel (Cmd/Ctrl + `)
-  - [ ] New connection (Cmd/Ctrl + N)
-  - [ ] Refresh keys (Cmd/Ctrl + R)
-  - [ ] Quick command palette (Cmd/Ctrl + P)
-- [ ] Command palette for quick actions
+- [x] Command palette for quick actions
+  - [x] Searchable command menu with fuzzy matching
+  - [x] Keyboard navigation (↑↓ arrows, Enter)
+  - [x] Built-in actions: New Connection, Show Connections, Refresh, Focus Search, Toggle Theme, Toggle Safe Mode
 - [ ] Customizable layout (resizable panels)
 - [ ] Split view (compare two keys side-by-side)
 - [ ] Workspaces (save UI state per connection)

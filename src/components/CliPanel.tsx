@@ -207,12 +207,12 @@ export function CliPanel() {
 
   if (!activeConnectionId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-6 bg-neutral-950 text-center">
-        <Database className="w-16 h-16 text-neutral-800 mb-4" />
-        <h3 className="text-sm font-semibold text-neutral-400 mb-1">
+      <div className="h-full flex flex-col items-center justify-center p-6 bg-neutral-100 dark:bg-neutral-950 text-center">
+        <Database className="w-16 h-16 text-neutral-400 dark:text-neutral-800 mb-4" />
+        <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
           No Connection
         </h3>
-        <p className="text-xs text-neutral-600">
+        <p className="text-xs text-neutral-500 dark:text-neutral-600">
           Connect to Redis to use the CLI
         </p>
       </div>
@@ -220,12 +220,14 @@ export function CliPanel() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-neutral-950">
+    <div className="h-full flex flex-col bg-neutral-100 dark:bg-neutral-950">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-neutral-800 flex items-center justify-between bg-neutral-900">
+      <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between bg-neutral-50 dark:bg-neutral-900">
         <div className="flex items-center gap-3">
-          <Terminal className="w-4 h-4 text-success-dark" />
-          <h3 className="text-sm font-semibold text-neutral-200">Redis CLI</h3>
+          <Terminal className="w-4 h-4 text-success-light dark:text-success-dark" />
+          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+            Redis CLI
+          </h3>
           <Badge variant="default" size="sm">
             {history.length} {history.length === 1 ? "command" : "commands"}
           </Badge>
@@ -235,7 +237,7 @@ export function CliPanel() {
           variant="ghost"
           size="sm"
           title="Clear history"
-          className="text-neutral-400 hover:text-neutral-200"
+          className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
         >
           <Trash2 className="w-4 h-4" />
         </IconButton>
@@ -245,13 +247,13 @@ export function CliPanel() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-sm">
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <Terminal className="w-12 h-12 text-neutral-800 mb-3" />
-            <p className="text-neutral-500 text-xs max-w-xs">
+            <Terminal className="w-12 h-12 text-neutral-400 dark:text-neutral-800 mb-3" />
+            <p className="text-neutral-600 dark:text-neutral-500 text-xs max-w-xs">
               Type Redis commands here. Use{" "}
-              <kbd className="px-1.5 py-0.5 bg-neutral-800 rounded text-xs">
+              <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-800 rounded text-xs">
                 ↑
               </kbd>{" "}
-              <kbd className="px-1.5 py-0.5 bg-neutral-800 rounded text-xs">
+              <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-800 rounded text-xs">
                 ↓
               </kbd>{" "}
               to navigate command history.
@@ -261,15 +263,17 @@ export function CliPanel() {
           history.map((entry, index) => (
             <div
               key={index}
-              className="space-y-2 pb-3 border-b border-neutral-900 last:border-0"
+              className="space-y-2 pb-3 border-b border-neutral-200 dark:border-neutral-900 last:border-0"
             >
               {/* Command */}
               <div className="flex items-start gap-2">
-                <span className="text-success-dark select-none">{">"}</span>
-                <span className="text-blue-400 flex-1 break-all">
+                <span className="text-success-light dark:text-success-dark select-none">
+                  {">"}
+                </span>
+                <span className="text-blue-600 dark:text-blue-400 flex-1 break-all">
                   {entry.command}
                 </span>
-                <span className="text-xs text-neutral-600 flex-shrink-0">
+                <span className="text-xs text-neutral-500 dark:text-neutral-600 flex-shrink-0">
                   {entry.timestamp.toLocaleTimeString()}
                 </span>
               </div>
@@ -277,8 +281,8 @@ export function CliPanel() {
               {/* Result */}
               <div
                 className={clsx("pl-4 break-all whitespace-pre-wrap", {
-                  "text-success-dark": !entry.error,
-                  "text-error-dark": entry.error,
+                  "text-success-light dark:text-success-dark": !entry.error,
+                  "text-error-light dark:text-error-dark": entry.error,
                 })}
               >
                 {entry.result}
@@ -292,10 +296,12 @@ export function CliPanel() {
       {/* Input Area */}
       <form
         onSubmit={handleExecute}
-        className="p-4 border-t border-neutral-800 bg-neutral-900"
+        className="p-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900"
       >
         <div className="flex items-center gap-3">
-          <span className="text-success-dark font-mono select-none">{">"}</span>
+          <span className="text-success-light dark:text-success-dark font-mono select-none">
+            {">"}
+          </span>
           <input
             ref={inputRef}
             type="text"
@@ -303,7 +309,7 @@ export function CliPanel() {
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Enter Redis command (e.g., GET mykey)"
-            className="flex-1 bg-transparent border-none outline-none text-neutral-100 placeholder-neutral-600 font-mono text-sm focus:ring-0"
+            className="flex-1 bg-transparent border-none outline-none text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-600 font-mono text-sm focus:ring-0"
             autoFocus
           />
           <button
@@ -312,8 +318,8 @@ export function CliPanel() {
             className={clsx(
               "p-2 rounded-lg transition-all duration-200",
               command.trim()
-                ? "bg-success-dark/20 text-success-dark hover:bg-success-dark/30"
-                : "text-neutral-700 cursor-not-allowed",
+                ? "bg-success-light/20 dark:bg-success-dark/20 text-success-light dark:text-success-dark hover:bg-success-light/30 dark:hover:bg-success-dark/30"
+                : "text-neutral-400 dark:text-neutral-700 cursor-not-allowed",
             )}
             title="Execute command"
           >

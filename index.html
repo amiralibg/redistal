@@ -15,6 +15,9 @@
             ? "dark"
             : "light");
         document.documentElement.classList.add(theme);
+        // Set background color immediately
+        document.documentElement.style.backgroundColor =
+          theme === "dark" ? "#0a0a0a" : "#fafafa";
       })();
     </script>
   </head>

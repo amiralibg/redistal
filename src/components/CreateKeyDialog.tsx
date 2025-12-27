@@ -242,10 +242,10 @@ export function CreateKeyDialog({ isOpen, onClose }: CreateKeyDialogProps) {
             <button
               key={option.type}
               onClick={() => handleTypeSelect(option.type)}
-              className="w-full p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-brand-600 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/20 transition-all text-left group"
+              className="w-full p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-brand-600 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all text-left group"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg group-hover:bg-brand-100 dark:group-hover:bg-brand-900/30 transition-colors text-neutral-600 dark:text-neutral-400 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                <div className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg group-hover:bg-brand-100 dark:group-hover:bg-brand-500/20 transition-colors text-neutral-600 dark:text-neutral-400 group-hover:text-brand-600 dark:group-hover:text-brand-400">
                   {option.icon}
                 </div>
                 <div className="flex-1">

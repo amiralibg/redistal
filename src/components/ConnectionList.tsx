@@ -124,7 +124,7 @@ export function ConnectionList({
                     p-4 rounded-lg border transition-all
                     ${
                       isActive
-                        ? "border-brand-600 bg-brand-50 dark:bg-brand-950/20"
+                        ? "border-brand-600 dark:border-blue-400 bg-brand-50 dark:bg-blue-500/10"
                         : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-brand-400 dark:hover:border-brand-600"
                     }
                   `}

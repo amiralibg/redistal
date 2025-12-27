@@ -43,7 +43,7 @@ export function ConfirmDialog({
                 ? "bg-error-light/10 dark:bg-error-dark/10"
                 : variant === "warning"
                   ? "bg-warning-light/10 dark:bg-warning-dark/10"
-                  : "bg-brand-50 dark:bg-brand-900/20"
+                  : "bg-brand-50 dark:bg-blue-500/10"
             }`}
           >
             <AlertTriangle

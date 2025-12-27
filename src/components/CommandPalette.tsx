@@ -55,9 +55,7 @@ export function CommandPalette({
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((i) =>
-          i < filteredActions.length - 1 ? i + 1 : i,
-        );
+        setSelectedIndex((i) => (i < filteredActions.length - 1 ? i + 1 : i));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((i) => (i > 0 ? i - 1 : 0));
@@ -124,7 +122,7 @@ export function CommandPalette({
                   "w-full px-4 py-3 flex items-center gap-3 transition-colors",
                   "hover:bg-neutral-50 dark:hover:bg-neutral-800",
                   index === selectedIndex &&
-                    "bg-brand-50 dark:bg-brand-900/20 border-l-2 border-l-brand-600",
+                    "bg-brand-50 dark:bg-brand-500/10 border-l-2 border-l-brand-600 dark:border-l-brand-500",
                 )}
               >
                 {action.icon && (

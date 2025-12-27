@@ -186,7 +186,7 @@ export function KeyBrowser({
                   "hover:bg-neutral-50 dark:hover:bg-neutral-800/50",
                   "focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800/50",
                   selectedKey === key
-                    ? "bg-brand-50 dark:bg-brand-900/20 border-l-3 border-l-brand-600 pl-[13px]"
+                    ? "bg-brand-50 dark:bg-brand-500/10 border-l-3 border-l-brand-600 dark:border-l-brand-500 pl-[13px]"
                     : "",
                 )}
               >
@@ -203,7 +203,7 @@ export function KeyBrowser({
                     className={clsx(
                       "text-sm font-mono break-all leading-relaxed",
                       selectedKey === key
-                        ? "text-brand-700 dark:text-brand-100 font-medium"
+                        ? "text-brand-700 dark:text-brand-300 font-medium"
                         : "text-neutral-700 dark:text-neutral-300",
                     )}
                   >

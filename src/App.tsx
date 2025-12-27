@@ -2,13 +2,14 @@ import { useState, useRef } from "react";
 import {
   Database,
   Plus,
-  Sun,
-  Moon,
   List,
   Shield,
   ShieldAlert,
   RefreshCw,
   Search,
+  Settings as SettingsIcon,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { ConnectionList } from "./components/ConnectionList";
@@ -16,17 +17,20 @@ import { KeyBrowser } from "./components/KeyBrowser";
 import { ValueViewer } from "./components/ValueViewer";
 import { CliPanel } from "./components/CliPanel";
 import { CommandPalette, CommandAction } from "./components/CommandPalette";
+import { Settings } from "./components/Settings";
 import { useRedisStore } from "./store/useRedisStore";
 import { useTheme } from "./lib/theme-context";
 import { useLoadConnections } from "./hooks/useLoadConnections";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { Button, IconButton, Badge } from "./components/ui";
 import type { StoredConnection } from "./types/redis";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 function App() {
   const [showConnectionDialog, setShowConnectionDialog] = useState(false);
   const [showConnectionList, setShowConnectionList] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [editingConnection, setEditingConnection] = useState<
     StoredConnection | undefined
   >(undefined);
@@ -181,8 +185,27 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950">
+      {/* Custom titlebar with drag region */}
+      <div
+        className="h-8 bg-white dark:bg-neutral-900 flex-shrink-0 select-none"
+        onMouseDown={async (e) => {
+          if (e.buttons === 1) {
+            if (e.detail === 2) {
+              // Double click to maximize/restore
+              await getCurrentWindow().toggleMaximize();
+            } else {
+              // Single click to start dragging
+              await getCurrentWindow().startDragging();
+            }
+          }
+        }}
+      >
+        {/* Leave space for macOS traffic lights (approximately 70-80px) */}
+        <div className="h-full flex items-center" />
+      </div>
+
       {/* Header */}
-      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 shadow-soft">
+      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 pb-4 pt-1 shadow-soft">
         <div className="flex items-center justify-between">
           {/* Left Section - Logo and Connection Info */}
           <div className="flex items-center gap-4">
@@ -243,16 +266,12 @@ function App() {
             )}
 
             <IconButton
-              onClick={toggleTheme}
+              onClick={() => setShowSettings(true)}
               variant="ghost"
               size="md"
-              title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+              title="Settings"
             >
-              {theme === "light" ? (
-                <Moon className="w-5 h-5" />
-              ) : (
-                <Sun className="w-5 h-5" />
-              )}
+              <SettingsIcon className="w-5 h-5" />
             </IconButton>
 
             {savedConnections.length > 0 && (
@@ -329,6 +348,8 @@ function App() {
         onClose={() => setShowCommandPalette(false)}
         actions={commandActions}
       />
+
+      <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }
