@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-  MutableRefObject,
-  useCallback,
-  useMemo,
-} from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Search, RefreshCw, Key, Database, Plus } from "lucide-react";
 import { VirtualList } from "./VirtualList";
 import { useRedisStore } from "../store/useRedisStore";
@@ -15,8 +8,8 @@ import { CreateKeyDialog } from "./CreateKeyDialog";
 import clsx from "clsx";
 
 interface KeyBrowserProps {
-  onRefreshKeysRef?: MutableRefObject<(() => void) | null>;
-  onFocusSearchRef?: MutableRefObject<(() => void) | null>;
+  onRefreshKeysRef?: { current: (() => void) | null };
+  onFocusSearchRef?: { current: (() => void) | null };
 }
 
 // Custom hook for debounced values
