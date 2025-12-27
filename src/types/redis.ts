@@ -75,3 +75,13 @@ export interface PaginatedHashResult {
   cursor: number;
   has_more: boolean;
 }
+
+export interface StreamEntry {
+  id: string;
+  fields: Record<string, string>;
+}
+
+export interface StreamRangeResult {
+  entries: StreamEntry[];
+  count: number;
+}

@@ -7,4 +7,5 @@ export { Dialog } from "./Dialog";
 export { IconButton } from "./IconButton";
 export { ToastComponent, ToastContainer } from "./Toast";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { Select } from "./Select";
 export type { Toast, ToastType } from "./Toast";

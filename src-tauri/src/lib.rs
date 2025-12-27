@@ -46,6 +46,21 @@ pub fn run() {
             commands::get_set_members,
             commands::get_zset_range,
             commands::get_hash_fields,
+            commands::hash_set_field,
+            commands::hash_delete_field,
+            commands::list_push,
+            commands::list_pop,
+            commands::list_set_index,
+            commands::list_remove,
+            commands::set_add_member,
+            commands::set_remove_member,
+            commands::zset_add_member,
+            commands::zset_remove_member,
+            commands::zset_increment_score,
+            commands::stream_add_entry,
+            commands::stream_delete_entry,
+            commands::stream_get_range,
+            commands::stream_trim,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

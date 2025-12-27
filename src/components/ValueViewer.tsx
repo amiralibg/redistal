@@ -15,6 +15,11 @@ import { redisApi } from "../lib/tauri-api";
 import { useTheme } from "../lib/theme-context";
 import { useToast } from "../lib/toast-context";
 import { Button, Badge, Input, ConfirmDialog } from "./ui";
+import { HashEditor } from "./HashEditor";
+import { ListEditor } from "./ListEditor";
+import { SetEditor } from "./SetEditor";
+import { ZSetEditor } from "./ZSetEditor";
+import { StreamEditor } from "./StreamEditor";
 import clsx from "clsx";
 
 export function ValueViewer() {
@@ -23,6 +28,7 @@ export function ValueViewer() {
     selectedKey,
     selectedKeyInfo,
     setSelectedKey,
+    setSelectedKeyInfo,
     setKeys,
     keys,
     safeMode,
@@ -579,22 +585,15 @@ export function ValueViewer() {
               Loading value...
             </p>
           </div>
-        ) : selectedKeyInfo?.key_type === "string" ||
-          selectedKeyInfo?.key_type === "hash" ||
-          selectedKeyInfo?.key_type === "list" ||
-          selectedKeyInfo?.key_type === "set" ||
-          selectedKeyInfo?.key_type === "zset" ||
-          selectedKeyInfo?.key_type === "stream" ? (
+        ) : selectedKeyInfo?.key_type === "string" ? (
           <Editor
             height="100%"
-            language={
-              selectedKeyInfo?.key_type === "string" ? getLanguage() : "json"
-            }
+            language={getLanguage()}
             value={editedValue}
             onChange={(val) => setEditedValue(val || "")}
             theme={theme === "dark" ? "vs-dark" : "light"}
             options={{
-              readOnly: selectedKeyInfo?.key_type !== "string" || safeMode,
+              readOnly: safeMode,
               minimap: { enabled: false },
               fontSize: 14,
               fontFamily:
@@ -609,74 +608,91 @@ export function ValueViewer() {
               padding: { top: 16, bottom: 16 },
             }}
           />
+        ) : selectedKeyInfo?.key_type === "hash" &&
+          activeConnectionId &&
+          selectedKey ? (
+          <HashEditor
+            connectionId={activeConnectionId}
+            keyName={selectedKey}
+            safeMode={safeMode}
+            onRefresh={() => {
+              // Refresh key info when data changes
+              if (activeConnectionId && selectedKey) {
+                redisApi
+                  .getKeyInfo(activeConnectionId, selectedKey, false)
+                  .then(setSelectedKeyInfo);
+              }
+            }}
+          />
+        ) : selectedKeyInfo?.key_type === "list" &&
+          activeConnectionId &&
+          selectedKey ? (
+          <ListEditor
+            connectionId={activeConnectionId}
+            keyName={selectedKey}
+            safeMode={safeMode}
+            onRefresh={() => {
+              if (activeConnectionId && selectedKey) {
+                redisApi
+                  .getKeyInfo(activeConnectionId, selectedKey, false)
+                  .then(setSelectedKeyInfo);
+              }
+            }}
+          />
+        ) : selectedKeyInfo?.key_type === "set" &&
+          activeConnectionId &&
+          selectedKey ? (
+          <SetEditor
+            connectionId={activeConnectionId}
+            keyName={selectedKey}
+            safeMode={safeMode}
+            onRefresh={() => {
+              if (activeConnectionId && selectedKey) {
+                redisApi
+                  .getKeyInfo(activeConnectionId, selectedKey, false)
+                  .then(setSelectedKeyInfo);
+              }
+            }}
+          />
+        ) : selectedKeyInfo?.key_type === "zset" &&
+          activeConnectionId &&
+          selectedKey ? (
+          <ZSetEditor
+            connectionId={activeConnectionId}
+            keyName={selectedKey}
+            safeMode={safeMode}
+            onRefresh={() => {
+              if (activeConnectionId && selectedKey) {
+                redisApi
+                  .getKeyInfo(activeConnectionId, selectedKey, false)
+                  .then(setSelectedKeyInfo);
+              }
+            }}
+          />
+        ) : selectedKeyInfo?.key_type === "stream" &&
+          activeConnectionId &&
+          selectedKey ? (
+          <StreamEditor
+            connectionId={activeConnectionId}
+            keyName={selectedKey}
+            safeMode={safeMode}
+            onRefresh={() => {
+              if (activeConnectionId && selectedKey) {
+                redisApi
+                  .getKeyInfo(activeConnectionId, selectedKey, false)
+                  .then(setSelectedKeyInfo);
+              }
+            }}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-neutral-50 dark:bg-neutral-950">
             <FileText className="w-16 h-16 text-neutral-400 dark:text-neutral-600 mb-4" />
             <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
               {selectedKeyInfo?.key_type?.toUpperCase() || "UNSUPPORTED"} Type
             </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-md mb-4">
-              Type-aware viewers for {selectedKeyInfo?.key_type || "this type"},
-              hash, list, set, and zset are coming soon!
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-md">
+              This key type is not yet supported.
             </p>
-            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-6">
-              For now, use the CLI panel to interact with this key type.
-            </p>
-            <div className="flex flex-col gap-2 w-full max-w-md p-4 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
-              <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide mb-1">
-                Common Commands:
-              </p>
-              {selectedKeyInfo?.key_type === "hash" && (
-                <>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    HGETALL {selectedKey}
-                  </code>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    HSET {selectedKey} field value
-                  </code>
-                </>
-              )}
-              {selectedKeyInfo?.key_type === "list" && (
-                <>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    LRANGE {selectedKey} 0 -1
-                  </code>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    LPUSH {selectedKey} value
-                  </code>
-                </>
-              )}
-              {selectedKeyInfo?.key_type === "set" && (
-                <>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    SMEMBERS {selectedKey}
-                  </code>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    SADD {selectedKey} member
-                  </code>
-                </>
-              )}
-              {selectedKeyInfo?.key_type === "zset" && (
-                <>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    ZRANGE {selectedKey} 0 -1 WITHSCORES
-                  </code>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    ZADD {selectedKey} score member
-                  </code>
-                </>
-              )}
-              {selectedKeyInfo?.key_type === "stream" && (
-                <>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    XRANGE {selectedKey} - +
-                  </code>
-                  <code className="text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    XADD {selectedKey} * field value
-                  </code>
-                </>
-              )}
-            </div>
           </div>
         )}
       </div>

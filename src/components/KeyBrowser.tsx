@@ -161,7 +161,7 @@ export function KeyBrowser({
             "hover:bg-neutral-50 dark:hover:bg-neutral-800/50",
             "focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800/50",
             isSelected
-              ? "bg-brand-50 dark:bg-brand-500/10 border-l-3 border-l-brand-600 dark:border-l-brand-500 pl-[13px]"
+              ? "bg-brand-50 dark:bg-brand-500/10 border-l-3 border-l-brand-600 dark:border-l-brand-500 pl-3.25"
               : "",
           )}
         >

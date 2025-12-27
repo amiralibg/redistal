@@ -1,9 +1,17 @@
 import { useState, useRef, useEffect } from "react";
-import { Terminal, Send, Trash2, Database } from "lucide-react";
+import {
+  Terminal,
+  Send,
+  Trash2,
+  Database,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
 import { useToast } from "../lib/toast-context";
 import { IconButton, Badge, ConfirmDialog } from "./ui";
+import { formatRedisResponse, highlightCommand } from "../lib/cli-formatter";
 import clsx from "clsx";
 
 interface CommandHistory {
@@ -11,6 +19,7 @@ interface CommandHistory {
   result: string;
   timestamp: Date;
   error?: boolean;
+  collapsed?: boolean;
 }
 
 const DANGEROUS_COMMANDS = [
@@ -95,8 +104,23 @@ export function CliPanel() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showDangerConfirm, setShowDangerConfirm] = useState(false);
   const [pendingCommand, setPendingCommand] = useState("");
+  const [collapsedIndices, setCollapsedIndices] = useState<Set<number>>(
+    new Set(),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const historyEndRef = useRef<HTMLDivElement>(null);
+
+  const toggleCollapse = (index: number) => {
+    setCollapsedIndices((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     historyEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -260,35 +284,68 @@ export function CliPanel() {
             </p>
           </div>
         ) : (
-          history.map((entry, index) => (
-            <div
-              key={index}
-              className="space-y-2 pb-3 border-b border-neutral-200 dark:border-neutral-900 last:border-0"
-            >
-              {/* Command */}
-              <div className="flex items-start gap-2">
-                <span className="text-success-light dark:text-success-dark select-none">
-                  {">"}
-                </span>
-                <span className="text-blue-600 dark:text-blue-400 flex-1 break-all">
-                  {entry.command}
-                </span>
-                <span className="text-xs text-neutral-500 dark:text-neutral-600 shrink-0">
-                  {entry.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
+          history.map((entry, index) => {
+            const isCollapsed = collapsedIndices.has(index);
+            const resultLength = entry.result.length;
+            const isLarge = resultLength > 500;
 
-              {/* Result */}
+            return (
               <div
-                className={clsx("pl-4 break-all whitespace-pre-wrap", {
-                  "text-success-light dark:text-success-dark": !entry.error,
-                  "text-error-light dark:text-error-dark": entry.error,
-                })}
+                key={index}
+                className="space-y-2 pb-3 border-b border-neutral-200 dark:border-neutral-900 last:border-0"
               >
-                {entry.result}
+                {/* Command */}
+                <div className="flex items-start gap-2">
+                  {isLarge && (
+                    <button
+                      onClick={() => toggleCollapse(index)}
+                      className="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors mt-0.5"
+                      title={isCollapsed ? "Expand output" : "Collapse output"}
+                    >
+                      {isCollapsed ? (
+                        <ChevronRight className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+                  <span className="text-success-light dark:text-success-dark select-none">
+                    {">"}
+                  </span>
+                  <div className="flex-1 break-all font-mono text-sm">
+                    {highlightCommand(entry.command)}
+                  </div>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-600 shrink-0">
+                    {entry.timestamp.toLocaleTimeString()}
+                  </span>
+                </div>
+
+                {/* Result */}
+                {!isCollapsed && (
+                  <div
+                    className={clsx("pl-4", {
+                      "text-error-light dark:text-error-dark": entry.error,
+                    })}
+                  >
+                    {entry.error ? (
+                      <div className="break-all whitespace-pre-wrap">
+                        {entry.result}
+                      </div>
+                    ) : (
+                      formatRedisResponse(entry.result)
+                    )}
+                  </div>
+                )}
+
+                {isCollapsed && (
+                  <div className="pl-4 text-xs text-neutral-500 dark:text-neutral-600 italic">
+                    Output collapsed ({resultLength.toLocaleString()}{" "}
+                    characters)
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={historyEndRef} />
       </div>

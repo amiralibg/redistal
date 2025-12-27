@@ -642,3 +642,425 @@ pub async fn get_hash_fields(
         _ => Err("Unexpected response format from HSCAN".to_string()),
     }
 }
+
+// Collection editing commands
+
+// Hash operations
+#[tauri::command]
+pub async fn hash_set_field(
+    connection_id: String,
+    key: String,
+    field: String,
+    value: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.hset::<_, _, _, ()>(&key, &field, &value)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn hash_delete_field(
+    connection_id: String,
+    key: String,
+    field: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.hdel::<_, _, ()>(&key, &field)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+// List operations
+#[tauri::command]
+pub async fn list_push(
+    connection_id: String,
+    key: String,
+    value: String,
+    side: String, // "left" or "right"
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    match side.as_str() {
+        "left" => conn
+            .lpush::<_, _, ()>(&key, &value)
+            .map_err(|e| e.to_string())?,
+        "right" => conn
+            .rpush::<_, _, ()>(&key, &value)
+            .map_err(|e| e.to_string())?,
+        _ => return Err("Invalid side: must be 'left' or 'right'".to_string()),
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn list_pop(
+    connection_id: String,
+    key: String,
+    side: String, // "left" or "right"
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let result = match side.as_str() {
+        "left" => conn
+            .lpop::<_, Option<String>>(&key, None)
+            .map_err(|e| e.to_string())?,
+        "right" => conn
+            .rpop::<_, Option<String>>(&key, None)
+            .map_err(|e| e.to_string())?,
+        _ => return Err("Invalid side: must be 'left' or 'right'".to_string()),
+    };
+
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn list_set_index(
+    connection_id: String,
+    key: String,
+    index: i64,
+    value: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.lset::<_, _, ()>(&key, index as isize, &value)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn list_remove(
+    connection_id: String,
+    key: String,
+    count: i64,
+    value: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.lrem::<_, _, ()>(&key, count as isize, &value)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+// Set operations
+#[tauri::command]
+pub async fn set_add_member(
+    connection_id: String,
+    key: String,
+    member: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.sadd::<_, _, ()>(&key, &member)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_remove_member(
+    connection_id: String,
+    key: String,
+    member: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.srem::<_, _, ()>(&key, &member)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+// ZSet operations
+#[tauri::command]
+pub async fn zset_add_member(
+    connection_id: String,
+    key: String,
+    member: String,
+    score: f64,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.zadd::<_, _, _, ()>(&key, &member, score)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn zset_remove_member(
+    connection_id: String,
+    key: String,
+    member: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    conn.zrem::<_, _, ()>(&key, &member)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn zset_increment_score(
+    connection_id: String,
+    key: String,
+    member: String,
+    increment: f64,
+    state: State<'_, AppState>,
+) -> Result<f64, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let new_score: f64 = conn
+        .zincr(&key, &member, increment)
+        .map_err(|e| e.to_string())?;
+
+    Ok(new_score)
+}
+
+// Stream operations
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamEntry {
+    pub id: String,
+    pub fields: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamRangeResult {
+    pub entries: Vec<StreamEntry>,
+    pub count: usize,
+}
+
+#[tauri::command]
+pub async fn stream_add_entry(
+    connection_id: String,
+    key: String,
+    fields: std::collections::HashMap<String, String>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    // Build XADD command with * for auto-generated ID
+    let mut cmd = redis::cmd("XADD");
+    cmd.arg(&key).arg("*");
+
+    // Add all field-value pairs
+    for (field, value) in fields.iter() {
+        cmd.arg(field).arg(value);
+    }
+
+    let entry_id: String = cmd.query(&mut conn).map_err(|e| e.to_string())?;
+
+    Ok(entry_id)
+}
+
+#[tauri::command]
+pub async fn stream_delete_entry(
+    connection_id: String,
+    key: String,
+    entry_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    redis::cmd("XDEL")
+        .arg(&key)
+        .arg(&entry_id)
+        .query::<()>(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn stream_get_range(
+    connection_id: String,
+    key: String,
+    start: String,
+    end: String,
+    count: Option<usize>,
+    state: State<'_, AppState>,
+) -> Result<StreamRangeResult, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let mut cmd = redis::cmd("XRANGE");
+    cmd.arg(&key).arg(&start).arg(&end);
+
+    if let Some(c) = count {
+        cmd.arg("COUNT").arg(c);
+    }
+
+    let result: redis::Value = cmd.query(&mut conn).map_err(|e| e.to_string())?;
+
+    let entries = parse_stream_entries(result)?;
+
+    Ok(StreamRangeResult {
+        count: entries.len(),
+        entries,
+    })
+}
+
+#[tauri::command]
+pub async fn stream_trim(
+    connection_id: String,
+    key: String,
+    strategy: String, // "MAXLEN" or "MINID"
+    threshold: String,
+    approximate: bool,
+    state: State<'_, AppState>,
+) -> Result<usize, String> {
+    let manager = state.redis_manager.lock().unwrap();
+
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let mut cmd = redis::cmd("XTRIM");
+    cmd.arg(&key);
+
+    if strategy == "MAXLEN" {
+        cmd.arg("MAXLEN");
+    } else if strategy == "MINID" {
+        cmd.arg("MINID");
+    } else {
+        return Err("Invalid strategy: must be 'MAXLEN' or 'MINID'".to_string());
+    }
+
+    if approximate {
+        cmd.arg("~");
+    }
+
+    cmd.arg(&threshold);
+
+    let removed: usize = cmd.query(&mut conn).map_err(|e| e.to_string())?;
+
+    Ok(removed)
+}
+
+// Helper function to parse XRANGE response
+fn parse_stream_entries(value: redis::Value) -> Result<Vec<StreamEntry>, String> {
+    let mut entries = Vec::new();
+
+    if let redis::Value::Array(items) = value {
+        for item in items {
+            if let redis::Value::Array(entry_parts) = item {
+                if entry_parts.len() >= 2 {
+                    // First element is the entry ID
+                    let id = match &entry_parts[0] {
+                        redis::Value::BulkString(bytes) => {
+                            String::from_utf8_lossy(bytes).to_string()
+                        }
+                        _ => continue,
+                    };
+
+                    // Second element is an array of field-value pairs
+                    let mut fields = std::collections::HashMap::new();
+                    if let redis::Value::Array(field_values) = &entry_parts[1] {
+                        let mut i = 0;
+                        while i < field_values.len() {
+                            if i + 1 < field_values.len() {
+                                let field = match &field_values[i] {
+                                    redis::Value::BulkString(bytes) => {
+                                        String::from_utf8_lossy(bytes).to_string()
+                                    }
+                                    _ => {
+                                        i += 2;
+                                        continue;
+                                    }
+                                };
+                                let value = match &field_values[i + 1] {
+                                    redis::Value::BulkString(bytes) => {
+                                        String::from_utf8_lossy(bytes).to_string()
+                                    }
+                                    _ => {
+                                        i += 2;
+                                        continue;
+                                    }
+                                };
+                                fields.insert(field, value);
+                            }
+                            i += 2;
+                        }
+                    }
+
+                    entries.push(StreamEntry { id, fields });
+                }
+            }
+        }
+    }
+
+    Ok(entries)
+}

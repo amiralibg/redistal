@@ -4,6 +4,25 @@ This file tracks planned features and tech-debt items for the Redis GUI.
 
 ## Recently Completed (Latest Session)
 
+- [x] **Type-Aware Collection Editors** - Full CRUD operations for all Redis data types
+  - [x] Hash editor with table UI, add/edit/delete fields, search, pagination
+  - [x] List editor with push/pop operations, index editing, pagination, remove items
+  - [x] Set editor with add/remove members, search, pagination
+  - [x] ZSet editor with sortable table (by member/score), add/edit/delete, pagination
+  - [x] **Stream editor** with entry viewing, add multi-field entries, delete entries, search, configurable entry count
+  - [x] All editors respect safe mode and show loading states
+  - [x] Backend commands: HSET, HDEL, LPUSH, RPUSH, LPOP, RPOP, LSET, LREM, SADD, SREM, ZADD, ZREM, ZINCRBY, XADD, XDEL, XRANGE, XTRIM
+- [x] **CLI Output Enhancements** - Beautiful, readable command output
+  - [x] RESP pretty printing with type detection
+  - [x] Table view for hashes (field/value columns)
+  - [x] Table view for lists (index/value columns)
+  - [x] Table view for sorted sets (member/score columns)
+  - [x] Syntax highlighting for Redis commands
+  - [x] Collapsible large outputs (500+ chars) with expand/collapse buttons
+  - [x] Smart formatting for JSON arrays and objects
+
+## Previously Completed
+
 - [x] **Performance Overhaul** - Major performance improvements for handling large datasets
   - [x] Removed 10k key limit - now fetches ALL matching keys using SCAN
   - [x] Virtual scrolling with react-window for rendering 100k+ keys smoothly
@@ -76,30 +95,28 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [ ] Multi-select keys for bulk operations
   - [ ] Filter keys by type
 
-- [ ] **Type-Aware Editors**
+- [x] **Type-Aware Editors**
   - [x] String editor:
     - [x] Text mode with syntax highlighting
     - [x] JSON mode with validation and formatting
     - [ ] Hex viewer for binary data
     - [ ] Base64 encode/decode
-  - [x] Hash viewer (JSON display, read-only)
-  - [x] List viewer (JSON display, read-only)
-  - [x] Set viewer (JSON display, read-only)
-  - [x] Zset viewer (JSON display with scores, read-only)
-  - [x] Stream viewer (raw format display, read-only)
+  - [x] Hash editor with full CRUD (add/edit/delete fields, search, pagination)
+  - [x] List editor with full CRUD (push/pop, index edit, remove, pagination)
+  - [x] Set editor with full CRUD (add/remove members, search, pagination)
+  - [x] ZSet editor with full CRUD (add/edit/delete, sortable table, pagination)
+  - [x] Stream editor with full CRUD (add multi-field entries, delete, XRANGE viewing, configurable count)
   - [ ] Future enhancements:
-    - [ ] Hash table editor with add/edit/delete fields UI
-    - [ ] List editor with push/pop operations UI
-    - [ ] Set editor with add/remove members UI
-    - [ ] Zset editor with sortable table UI
-    - [ ] Stream viewer with pagination and message management
+    - [ ] Stream consumer groups management (XGROUP, XREADGROUP)
+    - [ ] Hex viewer for binary string data
+    - [ ] Base64 encode/decode for strings
 
-- [ ] **CLI Enhancements**
-  - [ ] Better output formatting:
-    - [ ] RESP-like pretty printing
-    - [ ] Table view for hashes and lists
-    - [ ] Syntax highlighting for commands
-    - [ ] Collapsible large outputs
+- [x] **CLI Enhancements**
+  - [x] Better output formatting:
+    - [x] RESP-like pretty printing
+    - [x] Table view for hashes and lists
+    - [x] Syntax highlighting for commands
+    - [x] Collapsible large outputs
   - [ ] Command auto-completion
   - [ ] Command help/documentation inline
   - [ ] Saved command snippets

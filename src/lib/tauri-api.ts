@@ -10,6 +10,7 @@ import {
   PaginatedSetResult,
   PaginatedZSetResult,
   PaginatedHashResult,
+  StreamRangeResult,
 } from "../types/redis";
 import { cache, cacheKeys } from "./cache";
 
@@ -206,5 +207,211 @@ export const redisApi = {
     count: number,
   ): Promise<PaginatedHashResult> {
     return invoke("get_hash_fields", { connectionId, key, cursor, count });
+  },
+
+  // Collection editing operations
+
+  // Hash operations
+  async hashSetField(
+    connectionId: string,
+    key: string,
+    field: string,
+    value: string,
+  ): Promise<void> {
+    await invoke("hash_set_field", { connectionId, key, field, value });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  async hashDeleteField(
+    connectionId: string,
+    key: string,
+    field: string,
+  ): Promise<void> {
+    await invoke("hash_delete_field", { connectionId, key, field });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  // List operations
+  async listPush(
+    connectionId: string,
+    key: string,
+    value: string,
+    side: "left" | "right",
+  ): Promise<void> {
+    await invoke("list_push", { connectionId, key, value, side });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  async listPop(
+    connectionId: string,
+    key: string,
+    side: "left" | "right",
+  ): Promise<string | null> {
+    const result = await invoke<string | null>("list_pop", {
+      connectionId,
+      key,
+      side,
+    });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+    return result;
+  },
+
+  async listSetIndex(
+    connectionId: string,
+    key: string,
+    index: number,
+    value: string,
+  ): Promise<void> {
+    await invoke("list_set_index", { connectionId, key, index, value });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+  },
+
+  async listRemove(
+    connectionId: string,
+    key: string,
+    count: number,
+    value: string,
+  ): Promise<void> {
+    await invoke("list_remove", { connectionId, key, count, value });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  // Set operations
+  async setAddMember(
+    connectionId: string,
+    key: string,
+    member: string,
+  ): Promise<void> {
+    await invoke("set_add_member", { connectionId, key, member });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  async setRemoveMember(
+    connectionId: string,
+    key: string,
+    member: string,
+  ): Promise<void> {
+    await invoke("set_remove_member", { connectionId, key, member });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  // ZSet operations
+  async zsetAddMember(
+    connectionId: string,
+    key: string,
+    member: string,
+    score: number,
+  ): Promise<void> {
+    await invoke("zset_add_member", { connectionId, key, member, score });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  async zsetRemoveMember(
+    connectionId: string,
+    key: string,
+    member: string,
+  ): Promise<void> {
+    await invoke("zset_remove_member", { connectionId, key, member });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  async zsetIncrementScore(
+    connectionId: string,
+    key: string,
+    member: string,
+    increment: number,
+  ): Promise<number> {
+    const newScore = await invoke<number>("zset_increment_score", {
+      connectionId,
+      key,
+      member,
+      increment,
+    });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    return newScore;
+  },
+
+  // Stream operations
+  async streamAddEntry(
+    connectionId: string,
+    key: string,
+    fields: Record<string, string>,
+  ): Promise<string> {
+    const entryId = await invoke<string>("stream_add_entry", {
+      connectionId,
+      key,
+      fields,
+    });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+    return entryId;
+  },
+
+  async streamDeleteEntry(
+    connectionId: string,
+    key: string,
+    entryId: string,
+  ): Promise<void> {
+    await invoke("stream_delete_entry", { connectionId, key, entryId });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+  },
+
+  async streamGetRange(
+    connectionId: string,
+    key: string,
+    start: string,
+    end: string,
+    count?: number,
+  ): Promise<StreamRangeResult> {
+    return invoke("stream_get_range", {
+      connectionId,
+      key,
+      start,
+      end,
+      count,
+    });
+  },
+
+  async streamTrim(
+    connectionId: string,
+    key: string,
+    strategy: "MAXLEN" | "MINID",
+    threshold: string,
+    approximate: boolean,
+  ): Promise<number> {
+    const removed = await invoke<number>("stream_trim", {
+      connectionId,
+      key,
+      strategy,
+      threshold,
+      approximate,
+    });
+    // Invalidate cache
+    cache.delete(cacheKeys.value(connectionId, key));
+    cache.delete(cacheKeys.keyInfo(connectionId, key));
+    return removed;
   },
 };
