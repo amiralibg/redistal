@@ -10,6 +10,7 @@ import {
   Settings as SettingsIcon,
   Sun,
   Moon,
+  Terminal,
 } from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { ConnectionList } from "./components/ConnectionList";
@@ -31,6 +32,7 @@ function App() {
   const [showConnectionList, setShowConnectionList] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCliPanel, setShowCliPanel] = useState(true);
   const [editingConnection, setEditingConnection] = useState<
     StoredConnection | undefined
   >(undefined);
@@ -91,6 +93,15 @@ function App() {
       description: "Open command palette",
       handler: () => {
         setShowCommandPalette(true);
+      },
+    },
+    {
+      key: "`",
+      ctrl: true,
+      meta: true,
+      description: "Toggle CLI panel",
+      handler: () => {
+        setShowCliPanel((prev) => !prev);
       },
     },
     {
@@ -181,6 +192,17 @@ function App() {
       keywords: ["readonly", "write", "protect"],
       action: () => setSafeMode(!safeMode),
     },
+    {
+      id: "toggle-cli",
+      label: showCliPanel ? "Hide CLI Panel" : "Show CLI Panel",
+      description: showCliPanel
+        ? "Hide the CLI command panel"
+        : "Show the CLI command panel",
+      icon: <Terminal className="w-4 h-4" />,
+      shortcut: "⌘`",
+      keywords: ["terminal", "command", "console", "cli"],
+      action: () => setShowCliPanel(!showCliPanel),
+    },
   ];
 
   return (
@@ -244,25 +266,38 @@ function App() {
           {/* Right Section - Actions */}
           <div className="flex items-center gap-3">
             {activeConnectionId && (
-              <IconButton
-                onClick={() => setSafeMode(!safeMode)}
-                variant={safeMode ? "ghost" : "ghost"}
-                size="md"
-                title={
-                  safeMode
-                    ? "Safe mode enabled (read-only)"
-                    : "Safe mode disabled"
-                }
-                className={
-                  safeMode ? "text-success-light dark:text-success-dark" : ""
-                }
-              >
-                {safeMode ? (
-                  <Shield className="w-5 h-5" />
-                ) : (
-                  <ShieldAlert className="w-5 h-5" />
-                )}
-              </IconButton>
+              <>
+                <IconButton
+                  onClick={() => setSafeMode(!safeMode)}
+                  variant={safeMode ? "ghost" : "ghost"}
+                  size="md"
+                  title={
+                    safeMode
+                      ? "Safe mode enabled (read-only)"
+                      : "Safe mode disabled"
+                  }
+                  className={
+                    safeMode ? "text-success-light dark:text-success-dark" : ""
+                  }
+                >
+                  {safeMode ? (
+                    <Shield className="w-5 h-5" />
+                  ) : (
+                    <ShieldAlert className="w-5 h-5" />
+                  )}
+                </IconButton>
+
+                <IconButton
+                  onClick={() => setShowCliPanel(!showCliPanel)}
+                  variant="ghost"
+                  size="md"
+                  title={
+                    showCliPanel ? "Hide CLI panel (⌘`)" : "Show CLI panel (⌘`)"
+                  }
+                >
+                  <Terminal className="w-5 h-5" />
+                </IconButton>
+              </>
             )}
 
             <IconButton
@@ -315,9 +350,11 @@ function App() {
           </div>
 
           {/* CLI Panel */}
-          <div className="h-64 border-t border-neutral-200 dark:border-neutral-800">
-            <CliPanel />
-          </div>
+          {showCliPanel && (
+            <div className="h-64 border-t border-neutral-200 dark:border-neutral-800">
+              <CliPanel />
+            </div>
+          )}
         </div>
       </div>
 

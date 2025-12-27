@@ -9,6 +9,8 @@ import {
   Database,
   Edit2,
   Copy,
+  Check,
+  ClipboardCopy,
 } from "lucide-react";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
@@ -20,6 +22,7 @@ import { ListEditor } from "./ListEditor";
 import { SetEditor } from "./SetEditor";
 import { ZSetEditor } from "./ZSetEditor";
 import { StreamEditor } from "./StreamEditor";
+import { copyToClipboard, formatValueForClipboard } from "../lib/clipboard";
 import clsx from "clsx";
 
 export function ValueViewer() {
@@ -49,6 +52,7 @@ export function ValueViewer() {
   const [copyKeyName, setCopyKeyName] = useState("");
   const [keySize, setKeySize] = useState<number | null>(null);
   const [showSizeWarning, setShowSizeWarning] = useState(false);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
   // Size threshold: 1MB
   const SIZE_THRESHOLD = 1024 * 1024;
@@ -296,6 +300,29 @@ export function ValueViewer() {
     }
   };
 
+  const handleCopyValueToClipboard = async () => {
+    if (!selectedKey || !value) return;
+
+    try {
+      const formattedValue = formatValueForClipboard(
+        value,
+        selectedKeyInfo?.key_type || "unknown",
+        selectedKey,
+      );
+
+      await copyToClipboard(formattedValue);
+
+      setCopiedToClipboard(true);
+      toast.success("Copied to clipboard", "Value copied as JSON");
+
+      // Reset icon after 2 seconds
+      setTimeout(() => setCopiedToClipboard(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast.error("Copy failed", "Failed to copy value to clipboard");
+    }
+  };
+
   const getLanguage = () => {
     if (!selectedKeyInfo) return "text";
 
@@ -420,6 +447,21 @@ export function ValueViewer() {
                     JSON
                   </Badge>
                 )}
+                {selectedKeyInfo.encoding && (
+                  <Badge
+                    variant="default"
+                    size="sm"
+                    title="Redis encoding type"
+                  >
+                    <Database className="w-3 h-3 mr-1" />
+                    {selectedKeyInfo.encoding}
+                  </Badge>
+                )}
+                {selectedKeyInfo.refcount !== undefined && (
+                  <Badge variant="default" size="sm" title="Reference count">
+                    Refs: {selectedKeyInfo.refcount}
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -438,6 +480,24 @@ export function ValueViewer() {
                 {saving ? "Saving..." : "Save"}
               </Button>
             )}
+            <Button
+              onClick={handleCopyValueToClipboard}
+              variant="secondary"
+              size="sm"
+              disabled={!value}
+            >
+              {copiedToClipboard ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <ClipboardCopy className="w-4 h-4" />
+                  Copy Value
+                </>
+              )}
+            </Button>
             {copyingKey ? (
               <div className="flex items-center gap-2">
                 <Input

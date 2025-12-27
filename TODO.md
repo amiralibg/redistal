@@ -2,7 +2,16 @@
 
 This file tracks planned features and tech-debt items for the Redis GUI.
 
-## Recently Completed (Latest Session)
+## Recently Completed (Latest Session - Quick Wins)
+
+- [x] **5 Quick Win Features** - High-impact, low-effort improvements
+  - [x] Filter keys by type - Dropdown to filter key list by Redis data type (string, hash, list, set, zset, stream)
+  - [x] Key metadata panel - Display encoding, refcount, and memory usage badges in ValueViewer
+  - [x] Toggle CLI panel - Keyboard shortcut (Cmd/Ctrl + `) and command palette action to show/hide CLI
+  - [x] Next/prev key navigation - Arrow keys (↑/↓) to navigate through key list with auto-scroll
+  - [x] Copy value to clipboard - Button to export key value as JSON with metadata
+
+## Previously Completed
 
 - [x] **Type-Aware Collection Editors** - Full CRUD operations for all Redis data types
   - [x] Hash editor with table UI, add/edit/delete fields, search, pagination
@@ -91,9 +100,9 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [x] Create key flow (choose type: string/hash/list/set/zset/stream)
   - [x] Rename key support
   - [x] Duplicate/copy key
-  - [ ] Key metadata panel (memory usage, encoding, refcount)
+  - [x] Key metadata panel (memory usage, encoding, refcount)
   - [ ] Multi-select keys for bulk operations
-  - [ ] Filter keys by type
+  - [x] Filter keys by type
 
 - [x] **Type-Aware Editors**
   - [x] String editor:
@@ -157,7 +166,7 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [ ] Export current view/filtered keys
   - [ ] RDB file analyzer (read-only)
   - [ ] Copy key to clipboard (JSON format)
-  - [ ] Copy value to clipboard
+  - [x] Copy value to clipboard
 
 - [ ] **Bulk Operations**
   - [ ] Bulk delete with pattern matching + preview
@@ -186,13 +195,13 @@ This file tracks planned features and tech-debt items for the Redis GUI.
   - [x] Refresh keys (Cmd/Ctrl + R)
   - [x] Quick command palette (Cmd/Ctrl + P)
   - [x] Close dialogs (Escape)
-  - [ ] Next/prev key navigation (↑/↓)
+  - [x] Next/prev key navigation (↑/↓)
   - [ ] Run CLI command (Enter in CLI)
-  - [ ] Toggle CLI panel (Cmd/Ctrl + `)
+  - [x] Toggle CLI panel (Cmd/Ctrl + `)
 - [x] Command palette for quick actions
   - [x] Searchable command menu with fuzzy matching
   - [x] Keyboard navigation (↑↓ arrows, Enter)
-  - [x] Built-in actions: New Connection, Show Connections, Refresh, Focus Search, Toggle Theme, Toggle Safe Mode
+  - [x] Built-in actions: New Connection, Show Connections, Refresh, Focus Search, Toggle Theme, Toggle Safe Mode, Toggle CLI
 - [ ] Customizable layout (resizable panels)
 - [ ] Split view (compare two keys side-by-side)
 - [ ] Workspaces (save UI state per connection)

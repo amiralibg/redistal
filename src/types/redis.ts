@@ -30,6 +30,9 @@ export interface RedisKey {
   key_type: string;
   ttl: number;
   size?: number;
+  encoding?: string;
+  refcount?: number;
+  memory_usage?: number;
 }
 
 export interface RedisValue {

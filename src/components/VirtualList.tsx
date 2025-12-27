@@ -1,4 +1,10 @@
-import { useRef, useState, useCallback } from "react";
+import {
+  useRef,
+  useState,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 
 interface VirtualListProps<T> {
   items: T[];
@@ -9,20 +15,33 @@ interface VirtualListProps<T> {
   overscan?: number;
 }
 
-export function VirtualList<T>({
-  items,
-  height,
-  itemHeight,
-  renderItem,
-  className = "",
-  overscan = 3,
-}: VirtualListProps<T>) {
+function VirtualListInner<T>(
+  {
+    items,
+    height,
+    itemHeight,
+    renderItem,
+    className = "",
+    overscan = 3,
+  }: VirtualListProps<T>,
+  ref: React.Ref<VirtualListHandle>,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
   }, []);
+
+  // Expose scrollToIndex via imperative handle
+  useImperativeHandle(ref, () => ({
+    scrollToIndex: (index: number) => {
+      if (containerRef.current) {
+        const scrollTop = index * itemHeight;
+        containerRef.current.scrollTop = scrollTop;
+      }
+    },
+  }));
 
   const totalHeight = items.length * itemHeight;
   const visibleCount = Math.ceil(height / itemHeight);
@@ -71,6 +90,10 @@ export function VirtualList<T>({
     </div>
   );
 }
+
+export const VirtualList = forwardRef(VirtualListInner) as <T>(
+  props: VirtualListProps<T> & { ref?: React.Ref<VirtualListHandle> },
+) => ReturnType<typeof VirtualListInner>;
 
 // Imperative API for scrolling
 export interface VirtualListHandle {

@@ -36,9 +36,13 @@ export const redisApi = {
   async getKeys(
     connectionId: string,
     pattern: string,
+    keyTypeFilter?: string,
     useCache = true,
   ): Promise<string[]> {
-    const cacheKey = cacheKeys.keys(connectionId, pattern);
+    const cacheKey = cacheKeys.keys(
+      connectionId,
+      `${pattern}:${keyTypeFilter || "all"}`,
+    );
 
     // Check cache first
     if (useCache) {
@@ -48,7 +52,12 @@ export const redisApi = {
       }
     }
 
-    const keys = await invoke<string[]>("get_keys", { connectionId, pattern });
+    const keys = await invoke<string[]>("get_keys", {
+      connectionId,
+      pattern,
+      keyTypeFilter:
+        keyTypeFilter && keyTypeFilter !== "all" ? keyTypeFilter : null,
+    });
 
     // Cache for 30 seconds
     cache.set(cacheKey, keys, 30000);

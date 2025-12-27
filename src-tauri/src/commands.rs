@@ -25,6 +25,9 @@ pub struct RedisKey {
     pub key_type: String,
     pub ttl: i64,
     pub size: Option<usize>,
+    pub encoding: Option<String>,
+    pub refcount: Option<usize>,
+    pub memory_usage: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,6 +58,7 @@ pub async fn disconnect_from_redis(
 pub async fn get_keys(
     connection_id: String,
     pattern: String,
+    key_type_filter: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
     let manager = state.redis_manager.lock().unwrap();
@@ -92,6 +96,21 @@ pub async fn get_keys(
     }
 
     let mut keys: Vec<String> = seen.into_iter().collect();
+
+    // Filter by type if specified
+    if let Some(filter_type) = key_type_filter {
+        if filter_type != "all" {
+            let mut filtered_keys = Vec::new();
+            for key in &keys {
+                let key_type: String = conn.key_type(key).map_err(|e| e.to_string())?;
+                if key_type == filter_type {
+                    filtered_keys.push(key.clone());
+                }
+            }
+            keys = filtered_keys;
+        }
+    }
+
     keys.sort();
     Ok(keys)
 }
@@ -151,11 +170,47 @@ pub async fn get_key_info(
         _ => None,
     };
 
+    // Get memory usage
+    let memory_usage: Option<usize> = redis::cmd("MEMORY")
+        .arg("USAGE")
+        .arg(&key)
+        .query(&mut conn)
+        .ok()
+        .and_then(|x| x);
+
+    // Get encoding and refcount from DEBUG OBJECT
+    let (encoding, refcount) = match redis::cmd("DEBUG")
+        .arg("OBJECT")
+        .arg(&key)
+        .query::<String>(&mut conn)
+    {
+        Ok(debug_info) => {
+            // Parse: "Value at:0x... refcount:1 encoding:embstr serializedlength:5 ..."
+            let encoding = debug_info
+                .split_whitespace()
+                .find(|s| s.starts_with("encoding:"))
+                .and_then(|s| s.strip_prefix("encoding:"))
+                .map(|s| s.to_string());
+
+            let refcount = debug_info
+                .split_whitespace()
+                .find(|s| s.starts_with("refcount:"))
+                .and_then(|s| s.strip_prefix("refcount:"))
+                .and_then(|s| s.parse::<usize>().ok());
+
+            (encoding, refcount)
+        }
+        Err(_) => (None, None),
+    };
+
     Ok(RedisKey {
         name: key,
         key_type,
         ttl,
         size,
+        encoding,
+        refcount,
+        memory_usage,
     })
 }
 

@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { ConnectionConfig, RedisKey, StoredConnection } from "../types/redis";
+import {
+  ConnectionConfig,
+  RedisKey,
+  StoredConnection,
+  RedisDataType,
+} from "../types/redis";
 
 interface RedisStore {
   connections: ConnectionConfig[];
@@ -9,6 +14,7 @@ interface RedisStore {
   selectedKey: string | null;
   selectedKeyInfo: RedisKey | null;
   searchPattern: string;
+  keyTypeFilter: RedisDataType | "all";
   safeMode: boolean;
 
   setConnections: (connections: ConnectionConfig[]) => void;
@@ -21,6 +27,7 @@ interface RedisStore {
   setSelectedKey: (key: string | null) => void;
   setSelectedKeyInfo: (info: RedisKey | null) => void;
   setSearchPattern: (pattern: string) => void;
+  setKeyTypeFilter: (filter: RedisDataType | "all") => void;
   setSafeMode: (enabled: boolean) => void;
 }
 
@@ -32,6 +39,7 @@ export const useRedisStore = create<RedisStore>((set) => ({
   selectedKey: null,
   selectedKeyInfo: null,
   searchPattern: "*",
+  keyTypeFilter: "all",
   safeMode: false,
 
   setConnections: (connections) => set({ connections }),
@@ -54,5 +62,6 @@ export const useRedisStore = create<RedisStore>((set) => ({
   setSelectedKey: (key) => set({ selectedKey: key }),
   setSelectedKeyInfo: (info) => set({ selectedKeyInfo: info }),
   setSearchPattern: (pattern) => set({ searchPattern: pattern }),
+  setKeyTypeFilter: (filter) => set({ keyTypeFilter: filter }),
   setSafeMode: (enabled) => set({ safeMode: enabled }),
 }));

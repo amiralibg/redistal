@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Search, RefreshCw, Key, Database, Plus } from "lucide-react";
-import { VirtualList } from "./VirtualList";
+import { VirtualList, VirtualListHandle } from "./VirtualList";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
-import { Input, IconButton, Badge, Button } from "./ui";
+import { Input, IconButton, Badge, Button, Select } from "./ui";
 import { CreateKeyDialog } from "./CreateKeyDialog";
 import clsx from "clsx";
 
@@ -38,10 +38,12 @@ export function KeyBrowser({
     keys,
     selectedKey,
     searchPattern,
+    keyTypeFilter,
     setKeys,
     setSelectedKey,
     setSelectedKeyInfo,
     setSearchPattern,
+    setKeyTypeFilter,
   } = useRedisStore();
 
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,7 @@ export function KeyBrowser({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const virtualListRef = useRef<VirtualListHandle>(null);
   const [listHeight, setListHeight] = useState(600);
 
   // Debounced search pattern (500ms delay)
@@ -71,6 +74,7 @@ export function KeyBrowser({
       const loadedKeys = await redisApi.getKeys(
         activeConnectionId,
         searchPattern,
+        keyTypeFilter,
       );
       setKeys(loadedKeys);
     } catch (error) {
@@ -78,7 +82,7 @@ export function KeyBrowser({
     } finally {
       setLoading(false);
     }
-  }, [activeConnectionId, searchPattern, setKeys]);
+  }, [activeConnectionId, searchPattern, keyTypeFilter, setKeys]);
 
   // Update search pattern when debounced value changes
   useEffect(() => {
@@ -91,7 +95,7 @@ export function KeyBrowser({
     if (activeConnectionId) {
       loadKeys();
     }
-  }, [activeConnectionId, searchPattern, loadKeys]);
+  }, [activeConnectionId, searchPattern, keyTypeFilter, loadKeys]);
 
   // Measure container height for virtual list
   useEffect(() => {
@@ -147,6 +151,42 @@ export function KeyBrowser({
     e.preventDefault();
     setSearchPattern(localPattern);
   };
+
+  // Keyboard navigation handler
+  const handleKeyNavigation = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!filteredKeys.length || !selectedKey) return;
+
+      const currentIndex = filteredKeys.indexOf(selectedKey);
+      if (currentIndex === -1) return;
+
+      let newIndex = currentIndex;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        newIndex = Math.min(currentIndex + 1, filteredKeys.length - 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        newIndex = Math.max(currentIndex - 1, 0);
+      } else {
+        return; // Not an arrow key we care about
+      }
+
+      if (newIndex !== currentIndex) {
+        const newKey = filteredKeys[newIndex];
+        handleKeyClick(newKey);
+        virtualListRef.current?.scrollToIndex(newIndex);
+      }
+    },
+    [filteredKeys, selectedKey, handleKeyClick],
+  );
+
+  // Auto-focus container when key is selected
+  useEffect(() => {
+    if (selectedKey && containerRef.current) {
+      containerRef.current.focus();
+    }
+  }, [selectedKey]);
 
   // Render function for virtual list items
   const renderKeyItem = useCallback(
@@ -238,17 +278,34 @@ export function KeyBrowser({
           </div>
         </div>
 
-        {/* Search */}
-        <form onSubmit={handleSearch}>
-          <Input
-            ref={searchInputRef}
-            type="text"
-            value={localPattern}
-            onChange={(e) => setLocalPattern(e.target.value)}
-            placeholder="Search pattern (e.g., user:*)"
-            leftIcon={<Search className="w-4 h-4" />}
+        {/* Search and Filter */}
+        <div className="space-y-2">
+          <form onSubmit={handleSearch}>
+            <Input
+              ref={searchInputRef}
+              type="text"
+              value={localPattern}
+              onChange={(e) => setLocalPattern(e.target.value)}
+              placeholder="Search pattern (e.g., user:*)"
+              leftIcon={<Search className="w-4 h-4" />}
+            />
+          </form>
+
+          <Select
+            value={keyTypeFilter}
+            onChange={(value) => setKeyTypeFilter(value as any)}
+            options={[
+              { value: "all", label: "All Types" },
+              { value: "string", label: "String" },
+              { value: "hash", label: "Hash" },
+              { value: "list", label: "List" },
+              { value: "set", label: "Set" },
+              { value: "zset", label: "ZSet" },
+              { value: "stream", label: "Stream" },
+            ]}
+            size="sm"
           />
-        </form>
+        </div>
 
         {/* Key Count */}
         <div className="flex items-center justify-between text-xs">
@@ -265,7 +322,12 @@ export function KeyBrowser({
       </div>
 
       {/* Key List */}
-      <div className="flex-1 overflow-hidden" ref={containerRef}>
+      <div
+        className="flex-1 overflow-hidden focus:outline-none"
+        ref={containerRef}
+        onKeyDown={handleKeyNavigation}
+        tabIndex={0}
+      >
         {loading ? (
           <div className="flex flex-col items-center justify-center h-48 text-center p-6">
             <RefreshCw className="w-8 h-8 animate-spin text-brand-600 mb-3" />
@@ -287,6 +349,7 @@ export function KeyBrowser({
           </div>
         ) : (
           <VirtualList
+            ref={virtualListRef}
             items={filteredKeys}
             height={listHeight}
             itemHeight={65}
