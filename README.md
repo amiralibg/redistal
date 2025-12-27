@@ -2,6 +2,10 @@
 
 A modern, open-source Redis GUI built with Tauri, React, and Rust.
 
+<p align="center">
+  <img src="src-tauri/icons/128x128.png" width="96" alt="Redistal app icon" />
+</p>
+
 ![Redistal Banner](https://img.shields.io/badge/Redis-GUI-red?style=for-the-badge&logo=redis)
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-blue?style=for-the-badge&logo=tauri)
 ![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
@@ -26,14 +30,14 @@ A modern, open-source Redis GUI built with Tauri, React, and Rust.
 
 - **Value Viewer**
   - Monaco Editor integration for syntax highlighting
-  - Support for all Redis data types:
-    - String
-    - List
-    - Set
-    - Sorted Set (ZSet)
-    - Hash
+  - Type-aware editors with safe-mode support:
+    - **String**: text/JSON editing with auto-detection and formatting
+    - **Hash**: add/edit/delete fields, search, pagination
+    - **List**: push/pop, edit by index, remove items, pagination
+    - **Set**: add/remove members, search, pagination
+    - **Sorted Set (ZSet)**: add/remove/increment scores, sortable table, pagination
+    - **Streams**: view entries, add multi-field entries, delete entries, search, configurable entry count
   - JSON auto-detection and formatting
-  - Inline editing and saving
   - Key deletion
 
 - **TTL Management**
@@ -44,15 +48,16 @@ A modern, open-source Redis GUI built with Tauri, React, and Rust.
 - **CLI Panel**
   - Execute raw Redis commands
   - Command history with ↑/↓ navigation
-  - Syntax highlighting for commands and results
+  - Syntax highlighting for commands
+  - RESP-like pretty output with type-aware formatting (tables for collections)
+  - Collapsible large outputs
   - Error handling with clear feedback
 
 ### 🚧 Planned Features
 
-- **Streams Viewer**
-  - View Redis Streams
+- **Streams Enhancements**
   - Consumer group management
-  - Message browsing
+  - Advanced browsing (pending entries, claims, etc.)
 
 - **Pub/Sub Monitor**
   - Subscribe to channels
@@ -76,7 +81,7 @@ A modern, open-source Redis GUI built with Tauri, React, and Rust.
 - **Zustand** - State management
 - **Monaco Editor** - Code editor for JSON/values
 - **Lucide React** - Icon library
-- **Vite 6** - Build tool
+- **Vite 7** - Build tool
 
 ### Backend (Tauri)
 - **Rust** - Native backend

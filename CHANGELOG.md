@@ -4,6 +4,25 @@ All notable changes to Redistal will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-12-27
+
+### Added - Type-Aware Editors & Streams
+- Full CRUD editors for Redis collections:
+  - Hash: add/edit/delete fields, search, pagination
+  - List: push/pop, edit by index, remove items, pagination
+  - Set: add/remove members, search, pagination
+  - ZSet: add/remove/increment score, sortable table, pagination
+  - Streams: view entries (XRANGE), add entries (XADD), delete entries (XDEL), trim support (XTRIM)
+- Backend (Tauri) commands for safe collection editing across all supported types
+
+### Added - CLI Output Enhancements
+- Improved CLI output formatting with type-aware pretty printing
+- Table views for common collection responses
+- Collapsible output for large responses
+
+### Changed
+- Test population script now generates stream keys and stream-specific edge cases
+
 ### Added - Design System & UX Improvements
 
 #### Theme System
