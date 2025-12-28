@@ -1,17 +1,31 @@
 import { useState } from "react";
-import { Activity, Users, Clock, TrendingUp, Server } from "lucide-react";
+import {
+  Activity,
+  Users,
+  Clock,
+  TrendingUp,
+  Server,
+  Radio,
+} from "lucide-react";
 import clsx from "clsx";
 import { ServerStats } from "./monitoring/ServerStats";
 import { ClientList } from "./monitoring/ClientList";
 import { SlowLog } from "./monitoring/SlowLog";
 import { CommandStats } from "./monitoring/CommandStats";
 import { MemoryAnalysis } from "./monitoring/MemoryAnalysis";
+import { PubSubMonitor } from "./PubSubMonitor";
 
 interface MonitoringPanelProps {
   connectionId: string;
 }
 
-type TabId = "overview" | "clients" | "slowlog" | "commands" | "memory";
+type TabId =
+  | "overview"
+  | "clients"
+  | "slowlog"
+  | "commands"
+  | "memory"
+  | "pubsub";
 
 interface Tab {
   id: TabId;
@@ -44,6 +58,11 @@ const tabs: Tab[] = [
     id: "memory",
     label: "Memory",
     icon: <Server className="w-4 h-4" />,
+  },
+  {
+    id: "pubsub",
+    label: "Pub/Sub",
+    icon: <Radio className="w-4 h-4" />,
   },
 ];
 
@@ -88,6 +107,9 @@ export function MonitoringPanel({ connectionId }: MonitoringPanelProps) {
         )}
         {activeTab === "memory" && (
           <MemoryAnalysis connectionId={connectionId} />
+        )}
+        {activeTab === "pubsub" && (
+          <PubSubMonitor connectionId={connectionId} />
         )}
       </div>
     </div>

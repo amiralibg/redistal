@@ -60,6 +60,7 @@ function App() {
     minSize: 250,
     maxSize: 600,
     direction: "horizontal",
+    persistKey: "redistal-keybrowser-width",
   });
 
   const cliPanelResize = useResize({
@@ -67,6 +68,7 @@ function App() {
     minSize: 150,
     maxSize: 500,
     direction: "vertical",
+    persistKey: "redistal-clipanel-height",
   });
 
   useLoadConnections();

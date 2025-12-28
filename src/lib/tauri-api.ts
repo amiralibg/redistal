@@ -15,6 +15,7 @@ import {
   ClientInfo,
   SlowLogEntry,
   CommandStat,
+  PubSubStats,
 } from "../types/redis";
 import { cache, cacheKeys } from "./cache";
 
@@ -446,5 +447,9 @@ export const redisApi = {
 
   async getCommandStats(connectionId: string): Promise<CommandStat[]> {
     return invoke("get_command_stats", { connectionId });
+  },
+
+  async getPubSubStats(connectionId: string): Promise<PubSubStats> {
+    return invoke("get_pubsub_stats", { connectionId });
   },
 };

@@ -1,5 +1,5 @@
-import { InputHTMLAttributes, forwardRef, ReactNode } from 'react';
-import clsx from 'clsx';
+import { InputHTMLAttributes, forwardRef, ReactNode } from "react";
+import clsx from "clsx";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -10,13 +10,20 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, leftIcon, rightIcon, className, ...props }, ref) => {
+  (
+    { label, error, helperText, leftIcon, rightIcon, className, ...props },
+    ref,
+  ) => {
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
             {label}
-            {props.required && <span className="text-error-light dark:text-error-dark ml-1">*</span>}
+            {props.required && (
+              <span className="text-error-light dark:text-error-dark ml-1">
+                *
+              </span>
+            )}
           </label>
         )}
 
@@ -30,24 +37,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             className={clsx(
-              'w-full px-3 py-2 rounded-lg border transition-all duration-200',
-              'bg-white dark:bg-neutral-900',
-              'text-neutral-900 dark:text-neutral-100',
-              'placeholder:text-neutral-400 dark:placeholder:text-neutral-600',
-              'focus:outline-none focus:ring-2 focus:ring-offset-0',
+              "w-full px-3 py-2 rounded-lg border transition-all duration-200",
+              "bg-white dark:bg-neutral-900",
+              "text-neutral-900 dark:text-neutral-100",
+              "placeholder:text-neutral-400 dark:placeholder:text-neutral-600",
+              "focus:outline-none focus:ring-2 focus:ring-offset-0",
               {
                 // Default state
-                'border-neutral-300 dark:border-neutral-700 focus:border-brand-500 focus:ring-brand-500/20':
+                "border-neutral-300 dark:border-neutral-700 focus:border-brand-500 focus:ring-brand-500/20":
                   !error,
                 // Error state
-                'border-error-light dark:border-error-dark focus:border-error-light focus:ring-error-light/20':
+                "border-error-light dark:border-error-dark focus:border-error-light focus:ring-error-light/20":
                   error,
                 // With left icon
-                'pl-10': leftIcon,
+                "pl-10": leftIcon,
                 // With right icon
-                'pr-10': rightIcon,
+                "pr-10": rightIcon,
               },
-              className
+              className,
             )}
             {...props}
           />
@@ -61,9 +68,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
         {(error || helperText) && (
           <p
-            className={clsx('mt-1.5 text-sm', {
-              'text-error-light dark:text-error-dark': error,
-              'text-neutral-500 dark:text-neutral-400': !error && helperText,
+            className={clsx("mt-1.5 text-sm", {
+              "text-error-light dark:text-error-dark": error,
+              "text-neutral-500 dark:text-neutral-400": !error && helperText,
             })}
           >
             {error || helperText}
@@ -71,7 +78,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
-Input.displayName = 'Input';
+Input.displayName = "Input";

@@ -3,7 +3,7 @@ import { Search, RefreshCw, Key, Database, Plus } from "lucide-react";
 import { VirtualList, VirtualListHandle } from "./VirtualList";
 import { useRedisStore } from "../store/useRedisStore";
 import { redisApi } from "../lib/tauri-api";
-import { Input, IconButton, Badge, Button, Select } from "./ui";
+import { Input, IconButton, Button, Select } from "./ui";
 import { CreateKeyDialog } from "./CreateKeyDialog";
 import clsx from "clsx";
 
@@ -313,11 +313,6 @@ export function KeyBrowser({
             {filteredKeys.length} {filteredKeys.length === 1 ? "key" : "keys"}{" "}
             {keys.length !== filteredKeys.length && `(${keys.length} total)`}
           </span>
-          {filteredKeys.length > 1000 && (
-            <Badge variant="info" size="sm">
-              Virtualized
-            </Badge>
-          )}
         </div>
       </div>
 

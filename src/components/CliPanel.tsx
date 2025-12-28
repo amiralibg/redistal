@@ -12,6 +12,17 @@ import { redisApi } from "../lib/tauri-api";
 import { useToast } from "../lib/toast-context";
 import { IconButton, Badge, ConfirmDialog } from "./ui";
 import { formatRedisResponse, highlightCommand } from "../lib/cli-formatter";
+import { CommandSuggestions } from "./CommandSuggestions";
+import {
+  getCommandSuggestions,
+  getCommand,
+  type RedisCommand,
+} from "../lib/redis-commands";
+import {
+  getContextSuggestions,
+  shouldShowContextSuggestions,
+  type ContextSuggestion,
+} from "../lib/context-suggestions";
 import clsx from "clsx";
 
 interface CommandHistory {
@@ -96,7 +107,8 @@ const WRITE_COMMANDS = [
 ];
 
 export function CliPanel() {
-  const { activeConnectionId, safeMode } = useRedisStore();
+  const { activeConnectionId, safeMode, keys, selectedKey, selectedKeyInfo } =
+    useRedisStore();
   const toast = useToast();
   const [command, setCommand] = useState("");
   const [history, setHistory] = useState<CommandHistory[]>([]);
@@ -107,6 +119,12 @@ export function CliPanel() {
   const [collapsedIndices, setCollapsedIndices] = useState<Set<number>>(
     new Set(),
   );
+  const [suggestions, setSuggestions] = useState<
+    RedisCommand[] | ContextSuggestion[]
+  >([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+  const [isContextSuggestions, setIsContextSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const historyEndRef = useRef<HTMLDivElement>(null);
 
@@ -199,27 +217,117 @@ export function CliPanel() {
     setPendingCommand("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (commandHistory.length > 0) {
-        const newIndex =
-          historyIndex === -1
-            ? commandHistory.length - 1
-            : Math.max(0, historyIndex - 1);
-        setHistoryIndex(newIndex);
-        setCommand(commandHistory[newIndex]);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCommand(value);
+
+    const parts = value.trim().split(/\s+/);
+    const firstWord = parts[0];
+
+    // Check if we should show command suggestions (typing first word)
+    if (firstWord && parts.length === 1) {
+      const matches = getCommandSuggestions(firstWord);
+      setSuggestions(matches);
+      setShowSuggestions(matches.length > 0);
+      setIsContextSuggestions(false);
+      setSelectedSuggestionIndex(0);
+    }
+    // Check if we should show context suggestions (typing arguments)
+    else if (shouldShowContextSuggestions(value)) {
+      // Build context from store - keys are already strings in the store
+      const contextData = {
+        keys: keys,
+        selectedKey: selectedKey || undefined,
+        selectedKeyType: selectedKeyInfo?.key_type,
+        // Note: We don't have hash fields, set members, etc. loaded in CLI context
+        // For full context-aware suggestions, we'd need to fetch this data on-demand
+      };
+
+      const contextMatches = getContextSuggestions(value, contextData);
+      if (contextMatches.length > 0) {
+        setSuggestions(contextMatches);
+        setShowSuggestions(true);
+        setIsContextSuggestions(true);
+        setSelectedSuggestionIndex(0);
+      } else {
+        setShowSuggestions(false);
       }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (historyIndex !== -1) {
-        const newIndex = historyIndex + 1;
-        if (newIndex >= commandHistory.length) {
-          setHistoryIndex(-1);
-          setCommand("");
-        } else {
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (item: RedisCommand | ContextSuggestion) => {
+    if ("syntax" in item) {
+      // It's a command
+      setCommand(item.name + " ");
+    } else {
+      // It's a context suggestion - append the value
+      const parts = command.trim().split(/\s+/);
+      parts[parts.length - 1] = item.value;
+      setCommand(parts.join(" ") + " ");
+    }
+
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+
+    // Move cursor to end
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.selectionStart = inputRef.current.value.length;
+        inputRef.current.selectionEnd = inputRef.current.value.length;
+      }
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle suggestions navigation
+    if (showSuggestions) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) =>
+          Math.min(suggestions.length - 1, prev + 1),
+        );
+        return;
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => Math.max(0, prev - 1));
+        return;
+      } else if (e.key === "Tab" || e.key === "Enter") {
+        if (suggestions.length > 0) {
+          e.preventDefault();
+          handleSelectSuggestion(suggestions[selectedSuggestionIndex]);
+          return;
+        }
+      } else if (e.key === "Escape") {
+        setShowSuggestions(false);
+        return;
+      }
+    }
+
+    // Handle command history navigation (only when suggestions are not shown)
+    if (!showSuggestions) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (commandHistory.length > 0) {
+          const newIndex =
+            historyIndex === -1
+              ? commandHistory.length - 1
+              : Math.max(0, historyIndex - 1);
           setHistoryIndex(newIndex);
           setCommand(commandHistory[newIndex]);
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (historyIndex !== -1) {
+          const newIndex = historyIndex + 1;
+          if (newIndex >= commandHistory.length) {
+            setHistoryIndex(-1);
+            setCommand("");
+          } else {
+            setHistoryIndex(newIndex);
+            setCommand(commandHistory[newIndex]);
+          }
         }
       }
     }
@@ -325,6 +433,7 @@ export function CliPanel() {
                   <div
                     className={clsx("pl-4", {
                       "text-error-light dark:text-error-dark": entry.error,
+                      "text-neutral-800 dark:text-neutral-200": !entry.error,
                     })}
                   >
                     {entry.error ? (
@@ -353,22 +462,33 @@ export function CliPanel() {
       {/* Input Area */}
       <form
         onSubmit={handleExecute}
-        className="p-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900"
+        className="p-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 relative"
       >
         <div className="flex items-center gap-3">
           <span className="text-success-light dark:text-success-dark font-mono select-none">
             {">"}
           </span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={command}
-            onChange={(e) => setCommand(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter Redis command (e.g., GET mykey)"
-            className="flex-1 bg-transparent border-none outline-none text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-600 font-mono text-sm focus:ring-0"
-            autoFocus
-          />
+          <div className="flex-1 relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={command}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter Redis command (e.g., GET mykey)"
+              className="w-full bg-transparent border-none outline-none text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-600 font-mono text-sm focus:ring-0"
+              autoFocus
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <CommandSuggestions
+                suggestions={suggestions}
+                selectedIndex={selectedSuggestionIndex}
+                onSelect={handleSelectSuggestion}
+                position={{ top: -8, left: 0 }}
+                isContextSuggestions={isContextSuggestions}
+              />
+            )}
+          </div>
           <button
             type="submit"
             disabled={!command.trim()}
@@ -383,6 +503,19 @@ export function CliPanel() {
             <Send className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Syntax hint */}
+        {command.trim() &&
+          !showSuggestions &&
+          (() => {
+            const firstWord = command.trim().split(/\s+/)[0];
+            const cmd = getCommand(firstWord);
+            return cmd ? (
+              <div className="mt-2 px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-600 font-mono bg-neutral-200 dark:bg-neutral-950 rounded border-l-2 border-brand-400">
+                {cmd.syntax}
+              </div>
+            ) : null;
+          })()}
       </form>
 
       {/* Dangerous Command Confirmation */}

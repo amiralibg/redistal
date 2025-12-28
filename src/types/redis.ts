@@ -3,7 +3,7 @@ export interface SshTunnelConfig {
   ssh_host: string;
   ssh_port: number;
   ssh_username: string;
-  auth_method: "password" | "private_key";
+  auth_method: "Password" | "PrivateKey";
   ssh_password?: string;
   ssh_private_key_path?: string;
   ssh_passphrase?: string;
@@ -139,4 +139,14 @@ export interface CommandStat {
   calls: number;
   usec: number;
   usec_per_call: number;
+}
+
+export interface PubSubChannel {
+  name: string;
+  subscribers: number;
+}
+
+export interface PubSubStats {
+  channels: PubSubChannel[];
+  pattern_subscribers: number;
 }

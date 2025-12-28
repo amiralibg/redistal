@@ -2,7 +2,11 @@ use crate::ssh_tunnel::SshTunnel;
 use redis::{Client, Connection, RedisResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::Duration;
+
+const REDIS_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const REDIS_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SshAuthMethod {
@@ -57,6 +61,9 @@ impl RedisConnectionManager {
     }
 
     pub fn connect(&self, config: ConnectionConfig) -> RedisResult<ConnectionStatus> {
+        use std::time::Instant;
+        let start = Instant::now();
+
         // Establish SSH tunnel if configured
         let tunnel_result = if let Some(ssh_config) = &config.ssh_tunnel {
             if ssh_config.enabled {
@@ -64,6 +71,7 @@ impl RedisConnectionManager {
                     Ok(tunnel) => {
                         let mut tunnels = self.ssh_tunnels.lock().unwrap();
                         tunnels.insert(config.id.clone(), tunnel);
+                        eprintln!("Redis: SSH tunnel established in {:?}", start.elapsed());
                         Ok(())
                     }
                     Err(e) => Err(e),
@@ -85,11 +93,50 @@ impl RedisConnectionManager {
         }
 
         let conn_str = self.build_connection_string(&config);
+        eprintln!("Redis: Connecting to {}", conn_str.replace(|c: char| c.is_ascii_alphanumeric() || c == ':' || c == '/' || c == '@' || c == '.' || c == '-', "*"));
 
         match Client::open(conn_str) {
             Ok(client) => {
-                let mut conn = client.get_connection()?;
+                eprintln!("Redis: Client created in {:?}", start.elapsed());
+
+                // Perform the initial handshake (AUTH/SELECT) in a bounded time to avoid hangs
+                let client_for_handshake = client.clone();
+                let (tx, rx) = mpsc::channel();
+
+                std::thread::spawn(move || {
+                    let result = client_for_handshake
+                        .get_connection_with_timeout(REDIS_CONNECT_TIMEOUT);
+                    let _ = tx.send(result);
+                });
+
+                let mut conn = match rx.recv_timeout(REDIS_HANDSHAKE_TIMEOUT) {
+                    Ok(Ok(conn)) => conn,
+                    Ok(Err(e)) => {
+                        let mut tunnels = self.ssh_tunnels.lock().unwrap();
+                        tunnels.remove(&config.id);
+                        return Ok(ConnectionStatus {
+                            id: config.id,
+                            connected: false,
+                            error: Some(e.to_string()),
+                        });
+                    }
+                    Err(_) => {
+                        let mut tunnels = self.ssh_tunnels.lock().unwrap();
+                        tunnels.remove(&config.id);
+                        return Ok(ConnectionStatus {
+                            id: config.id,
+                            connected: false,
+                            error: Some(format!(
+                                "Redis connection timed out after {:?}",
+                                REDIS_HANDSHAKE_TIMEOUT
+                            )),
+                        });
+                    }
+                };
+
+                eprintln!("Redis: Connection established in {:?}", start.elapsed());
                 redis::cmd("PING").query::<String>(&mut conn)?;
+                eprintln!("Redis: PING successful in {:?}", start.elapsed());
 
                 let mut connections = self.connections.lock().unwrap();
                 connections.insert(config.id.clone(), client);

@@ -41,7 +41,7 @@ export function ConnectionDialog({
     ssh_host: "",
     ssh_port: 22,
     ssh_username: "",
-    ssh_auth_method: "password" as "password" | "private_key",
+    ssh_auth_method: "Password" as "Password" | "PrivateKey",
     ssh_password: "",
     ssh_private_key_path: "",
     ssh_passphrase: "",
@@ -67,7 +67,7 @@ export function ConnectionDialog({
         ssh_host: editConnection.ssh_tunnel?.ssh_host || "",
         ssh_port: editConnection.ssh_tunnel?.ssh_port || 22,
         ssh_username: editConnection.ssh_tunnel?.ssh_username || "",
-        ssh_auth_method: editConnection.ssh_tunnel?.auth_method || "password",
+        ssh_auth_method: editConnection.ssh_tunnel?.auth_method || "Password",
         ssh_password: "", // Don't pre-fill for security
         ssh_private_key_path:
           editConnection.ssh_tunnel?.ssh_private_key_path || "",
@@ -88,7 +88,7 @@ export function ConnectionDialog({
         ssh_host: "",
         ssh_port: 22,
         ssh_username: "",
-        ssh_auth_method: "password",
+        ssh_auth_method: "Password",
         ssh_password: "",
         ssh_private_key_path: "",
         ssh_passphrase: "",
@@ -122,15 +122,15 @@ export function ConnectionDialog({
               ssh_username: formData.ssh_username,
               auth_method: formData.ssh_auth_method,
               ssh_password:
-                formData.ssh_auth_method === "password"
+                formData.ssh_auth_method === "Password"
                   ? formData.ssh_password || undefined
                   : undefined,
               ssh_private_key_path:
-                formData.ssh_auth_method === "private_key"
+                formData.ssh_auth_method === "PrivateKey"
                   ? formData.ssh_private_key_path || undefined
                   : undefined,
               ssh_passphrase:
-                formData.ssh_auth_method === "private_key"
+                formData.ssh_auth_method === "PrivateKey"
                   ? formData.ssh_passphrase || undefined
                   : undefined,
             }
@@ -180,20 +180,22 @@ export function ConnectionDialog({
               ssh_username: formData.ssh_username,
               auth_method: formData.ssh_auth_method,
               ssh_password:
-                formData.ssh_auth_method === "password"
+                formData.ssh_auth_method === "Password"
                   ? formData.ssh_password || undefined
                   : undefined,
               ssh_private_key_path:
-                formData.ssh_auth_method === "private_key"
+                formData.ssh_auth_method === "PrivateKey"
                   ? formData.ssh_private_key_path || undefined
                   : undefined,
               ssh_passphrase:
-                formData.ssh_auth_method === "private_key"
+                formData.ssh_auth_method === "PrivateKey"
                   ? formData.ssh_passphrase || undefined
                   : undefined,
             }
           : undefined,
       };
+
+      console.log(config);
 
       // If editing, we just update the saved connection without connecting
       if (editConnection) {
@@ -356,15 +358,14 @@ export function ConnectionDialog({
             min="0"
             max="15"
             leftIcon={<DatabaseIcon className="w-4 h-4" />}
-            helperText="0-15"
             required
           />
 
           <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-3">
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
               Security
             </label>
-            <label className="flex items-center gap-3 p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+            <label className="flex items-center gap-3 py-2.5 px-3 border border-neutral-300 dark:border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
               <input
                 type="checkbox"
                 checked={formData.use_tls}
@@ -384,32 +385,36 @@ export function ConnectionDialog({
         </div>
 
         {/* SSH Tunnel Configuration */}
-        <div className="space-y-4 pt-2 border-t border-neutral-200 dark:border-neutral-800">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-              <Network className="w-4 h-4" />
-              SSH Tunnel (Optional)
-            </h3>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.ssh_tunnel_enabled}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    ssh_tunnel_enabled: e.target.checked,
-                  })
-                }
-                className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 rounded focus:ring-brand-500 focus:ring-2"
-              />
-              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Enable SSH Tunnel
-              </span>
-            </label>
-          </div>
+        <div className="space-y-4">
+          <label className="group flex items-center justify-between p-4 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-xl cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-purple-500 rounded-md">
+                <Network className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-purple-900 dark:text-purple-100">
+                  SSH Tunnel
+                </h3>
+                <p className="text-xs text-purple-700 dark:text-purple-300">
+                  Connect through an SSH server
+                </p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.ssh_tunnel_enabled}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  ssh_tunnel_enabled: e.target.checked,
+                })
+              }
+              className="w-5 h-5 text-brand-600 bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-600 rounded focus:ring-brand-500 focus:ring-2 cursor-pointer"
+            />
+          </label>
 
           {formData.ssh_tunnel_enabled && (
-            <div className="space-y-4 pl-6 border-l-2 border-brand-500">
+            <div className="space-y-4 p-4 bg-white dark:bg-neutral-900 rounded-xl border border-purple-200 dark:border-purple-800 shadow-sm">
               {/* SSH Host and Port */}
               <div className="grid grid-cols-2 gap-4">
                 <Input
@@ -452,45 +457,65 @@ export function ConnectionDialog({
 
               {/* SSH Authentication Method */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-3">
                   Authentication Method
                 </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="grid grid-cols-2 gap-3">
+                  <label
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                      formData.ssh_auth_method === "Password"
+                        ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30"
+                        : "border-neutral-300 dark:border-neutral-700 hover:border-brand-400 dark:hover:border-brand-600"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="ssh_auth_method"
-                      value="password"
-                      checked={formData.ssh_auth_method === "password"}
+                      value="Password"
+                      checked={formData.ssh_auth_method === "Password"}
                       onChange={() =>
                         setFormData({
                           ...formData,
-                          ssh_auth_method: "password",
+                          ssh_auth_method: "Password",
                         })
                       }
                       className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 focus:ring-brand-500 focus:ring-2"
                     />
-                    <Key className="w-4 h-4 text-neutral-500" />
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                    <Key
+                      className={`w-4 h-4 ${formData.ssh_auth_method === "Password" ? "text-brand-600" : "text-neutral-500"}`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${formData.ssh_auth_method === "Password" ? "text-brand-700 dark:text-brand-300" : "text-neutral-700 dark:text-neutral-300"}`}
+                    >
                       Password
                     </span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                      formData.ssh_auth_method === "PrivateKey"
+                        ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30"
+                        : "border-neutral-300 dark:border-neutral-700 hover:border-brand-400 dark:hover:border-brand-600"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="ssh_auth_method"
-                      value="private_key"
-                      checked={formData.ssh_auth_method === "private_key"}
+                      value="PrivateKey"
+                      checked={formData.ssh_auth_method === "PrivateKey"}
                       onChange={() =>
                         setFormData({
                           ...formData,
-                          ssh_auth_method: "private_key",
+                          ssh_auth_method: "PrivateKey",
                         })
                       }
                       className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 focus:ring-brand-500 focus:ring-2"
                     />
-                    <FileKey className="w-4 h-4 text-neutral-500" />
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                    <FileKey
+                      className={`w-4 h-4 ${formData.ssh_auth_method === "PrivateKey" ? "text-brand-600" : "text-neutral-500"}`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${formData.ssh_auth_method === "PrivateKey" ? "text-brand-700 dark:text-brand-300" : "text-neutral-700 dark:text-neutral-300"}`}
+                    >
                       Private Key
                     </span>
                   </label>
@@ -498,7 +523,7 @@ export function ConnectionDialog({
               </div>
 
               {/* SSH Password or Private Key */}
-              {formData.ssh_auth_method === "password" ? (
+              {formData.ssh_auth_method === "Password" ? (
                 <Input
                   label="SSH Password"
                   type="password"
@@ -545,73 +570,98 @@ export function ConnectionDialog({
         </div>
 
         {/* Save Connection Option */}
-        <div className="pt-2">
-          <label className="flex items-center gap-3 p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-            <input
-              type="checkbox"
-              checked={saveConnection}
-              onChange={(e) => setSaveConnection(e.target.checked)}
-              className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 rounded focus:ring-brand-500 focus:ring-2"
-            />
-            <div className="flex-1">
-              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        <label className="group flex items-start gap-4 p-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-xl cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 transition-all">
+          <input
+            type="checkbox"
+            checked={saveConnection}
+            onChange={(e) => setSaveConnection(e.target.checked)}
+            className="mt-1 w-5 h-5 text-brand-600 bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-600 rounded focus:ring-brand-500 focus:ring-2 cursor-pointer"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <DatabaseIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-bold text-blue-900 dark:text-blue-100">
                 Save connection for future use
               </span>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                Connection details will be saved locally. Passwords are stored
-                securely in your system keychain.
-              </p>
             </div>
-          </label>
-        </div>
+            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+              Connection details will be saved locally. Passwords are stored
+              securely in your system keychain for maximum security.
+            </p>
+          </div>
+        </label>
 
         {/* Test Connection Success Message */}
         {testSuccess && (
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg animate-slide-down">
-            <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-              ✓ Connection test successful
-            </p>
+          <div className="p-4 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 border-2 border-green-400 dark:border-green-600 rounded-xl shadow-lg animate-slide-down">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">✓</span>
+              </div>
+              <p className="text-sm text-green-800 dark:text-green-300 font-semibold">
+                Connection test successful! Ready to connect.
+              </p>
+            </div>
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-slide-down">
-            <p className="text-sm text-red-700 dark:text-red-400 font-medium">
-              {error}
-            </p>
+          <div className="p-4 bg-linear-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/40 border-2 border-red-400 dark:border-red-600 rounded-xl shadow-lg animate-slide-down">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">✕</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">
+                  Connection Failed
+                </p>
+                <p className="text-sm text-red-700 dark:text-red-400 wrap-break-word">
+                  {error}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="outline"
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          {!editConnection && (
+        <div className="flex flex-col gap-3 pt-6">
+          <div className="flex gap-3">
+            <Button
+              type="submit"
+              variant="primary"
+              loading={loading}
+              className="flex-1 h-12 text-base font-semibold shadow-lg shadow-brand-500/30 hover:shadow-xl hover:shadow-brand-500/40 transition-all"
+            >
+              {loading
+                ? "Connecting..."
+                : editConnection
+                  ? "Update Connection"
+                  : "Connect to Redis"}
+            </Button>
+          </div>
+
+          <div className="flex gap-3">
+            {!editConnection && (
+              <Button
+                type="button"
+                onClick={handleTestConnection}
+                variant="outline"
+                loading={testing}
+                className="flex-1 h-10"
+              >
+                {testing ? "Testing..." : "Test Connection"}
+              </Button>
+            )}
             <Button
               type="button"
-              onClick={handleTestConnection}
+              onClick={onClose}
               variant="outline"
-              loading={testing}
-              className="flex-1"
+              className={!editConnection ? "w-32 h-10" : "flex-1 h-10"}
             >
-              {testing ? "Testing..." : "Test Connection"}
+              Cancel
             </Button>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            loading={loading}
-            className="flex-1"
-          >
-            {loading ? "Connecting..." : editConnection ? "Update" : "Connect"}
-          </Button>
+          </div>
         </div>
       </form>
     </Dialog>

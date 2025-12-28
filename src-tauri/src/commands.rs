@@ -462,50 +462,9 @@ pub async fn get_connection_password(
 
 #[tauri::command]
 pub async fn test_connection(config: ConnectionConfig) -> Result<ConnectionStatus, String> {
-    // Build connection string
-    let protocol = if config.use_tls { "rediss" } else { "redis" };
-
-    let url = if let Some(username) = &config.username {
-        if let Some(password) = &config.password {
-            format!(
-                "{}://{}:{}@{}:{}/{}",
-                protocol, username, password, config.host, config.port, config.database
-            )
-        } else {
-            format!(
-                "{}://{}@{}:{}/{}",
-                protocol, username, config.host, config.port, config.database
-            )
-        }
-    } else if let Some(password) = &config.password {
-        format!(
-            "{}://:{}@{}:{}/{}",
-            protocol, password, config.host, config.port, config.database
-        )
-    } else {
-        format!(
-            "{}://{}:{}/{}",
-            protocol, config.host, config.port, config.database
-        )
-    };
-
-    // Try to connect
-    let client = redis::Client::open(url).map_err(|e| format!("Invalid connection URL: {}", e))?;
-
-    let mut conn = client
-        .get_connection()
-        .map_err(|e| format!("Connection failed: {}", e))?;
-
-    // Test with PING command
-    redis::cmd("PING")
-        .query::<String>(&mut conn)
-        .map_err(|e| format!("PING failed: {}", e))?;
-
-    Ok(ConnectionStatus {
-        id: config.id,
-        connected: true,
-        error: None,
-    })
+    // Reuse the full connection logic (including SSH tunnel support) but on a short-lived manager
+    let manager = RedisConnectionManager::new();
+    manager.connect(config).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1433,4 +1392,70 @@ pub async fn get_command_stats(
     stats.sort_by(|a, b| b.calls.cmp(&a.calls));
 
     Ok(stats)
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PubSubChannel {
+    pub name: String,
+    pub subscribers: i32,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PubSubStats {
+    pub channels: Vec<PubSubChannel>,
+    pub pattern_subscribers: i32,
+}
+
+#[tauri::command]
+pub async fn get_pubsub_stats(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<PubSubStats, String> {
+    let manager = state.redis_manager.lock().unwrap();
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    // Get all active channels
+    let channels: Vec<String> = redis::cmd("PUBSUB")
+        .arg("CHANNELS")
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    // Get subscriber count for each channel
+    let mut channel_stats = Vec::new();
+    for channel in channels {
+        // PUBSUB NUMSUB returns array: [channel_name, subscriber_count, ...]
+        let result: Vec<redis::Value> = redis::cmd("PUBSUB")
+            .arg("NUMSUB")
+            .arg(&channel)
+            .query(&mut conn)
+            .map_err(|e| e.to_string())?;
+
+        // Parse the result - should be [channel_name, count]
+        let subscribers = if result.len() >= 2 {
+            match &result[1] {
+                redis::Value::Int(count) => *count as i32,
+                _ => 0,
+            }
+        } else {
+            0
+        };
+
+        channel_stats.push(PubSubChannel {
+            name: channel,
+            subscribers,
+        });
+    }
+
+    // Get pattern subscriber count
+    let numpat: i32 = redis::cmd("PUBSUB")
+        .arg("NUMPAT")
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    Ok(PubSubStats {
+        channels: channel_stats,
+        pattern_subscribers: numpat,
+    })
 }

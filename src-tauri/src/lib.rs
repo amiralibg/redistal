@@ -66,6 +66,7 @@ pub fn run() {
             commands::get_client_list,
             commands::get_slow_log,
             commands::get_command_stats,
+            commands::get_pubsub_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

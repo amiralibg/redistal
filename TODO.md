@@ -2,7 +2,55 @@
 
 This file tracks planned features and tech-debt items for the Redis GUI.
 
-## Recently Completed (Latest Session - Quick Wins)
+## Recently Completed (Latest Session - UX Polish & Pub/Sub)
+
+- [x] **Persist Panel Sizes** - Panel dimensions persist across app restarts
+  - [x] Updated useResize hook with optional persistKey parameter
+  - [x] localStorage integration with validation and error handling
+  - [x] KeyBrowser width saved as `redistal-keybrowser-width`
+  - [x] CLI panel height saved as `redistal-clipanel-height`
+  - [x] Graceful fallback to defaults for invalid stored values
+
+- [x] **Command Auto-completion in CLI** - Intelligent command suggestions
+  - [x] Redis command database with 100+ core commands (GET, SET, HSET, LPUSH, ZADD, etc.)
+  - [x] CommandSuggestions dropdown component with keyboard navigation
+  - [x] Arrow up/down to navigate, Tab/Enter to complete, Escape to dismiss
+  - [x] Real-time filtering as user types first word
+  - [x] Syntax hints display below input after command completion
+  - [x] Command metadata: summary, syntax, complexity, group
+  - [x] Theme-aware styling with dark/light mode support
+  - [x] Doesn't interfere with existing history navigation (↑/↓)
+
+- [x] **Pub/Sub Monitor (Phase 1)** - Passive monitoring of Pub/Sub activity
+  - [x] New "Pub/Sub" tab in monitoring dashboard
+  - [x] Backend command: get_pubsub_stats with PUBSUB CHANNELS/NUMSUB/NUMPAT
+  - [x] Overview cards: Active Channels, Total Subscribers, Pattern Subscribers
+  - [x] Channel list table with subscriber counts per channel
+  - [x] Auto-refresh every 3 seconds
+  - [x] Empty state when no active channels
+  - [x] PubSubMonitor component with full dark/light theme support
+
+## Previously Completed (Enterprise Features)
+
+- [x] **Comprehensive Monitoring & Analytics Dashboard** - Full observability into Redis server health and performance
+  - [x] Server stats overview - 8 real-time metric cards (uptime, clients, keys, memory, ops/sec, cache hit rate) with auto-refresh
+  - [x] Client list viewer - Track all connected clients with connection details, highlight idle clients
+  - [x] Slow log viewer - Color-coded query durations with configurable entry count (32/64/128/256)
+  - [x] Command statistics - Sortable performance table with usage percentages and timing metrics
+  - [x] Memory analysis - Visual pie chart, fragmentation monitoring, optimization tips
+  - [x] Monitoring panel toggle - Button in header and command palette action
+  - [x] Backend commands: get_server_info, get_client_list, get_slow_log, get_command_stats
+
+- [x] **SSH Tunnel Support & UI Enhancements**
+  - [x] SSH tunnel functionality - Connect to remote Redis servers via SSH with port forwarding (auto-detect 9000-10000)
+  - [x] SSH authentication - Support both password and private key methods
+  - [x] Secure credential storage - Store SSH credentials in system keychain
+  - [x] SSH configuration UI - Collapsible section in ConnectionDialog with toggle and auth method selection
+  - [x] Resizable panels - Horizontal resize for KeyBrowser (250-600px), vertical resize for CLI (150-500px)
+  - [x] ResizeHandle component - Drag-based resizing with visual feedback and grip icons
+  - [x] Dialog scrolling fix - Max height constraint and scrollable content for long forms
+
+## Previously Completed (Quick Wins)
 
 - [x] **5 Quick Win Features** - High-impact, low-effort improvements
   - [x] Filter keys by type - Dropdown to filter key list by Redis data type (string, hash, list, set, zset, stream)
@@ -126,26 +174,34 @@ This file tracks planned features and tech-debt items for the Redis GUI.
     - [x] Table view for hashes and lists
     - [x] Syntax highlighting for commands
     - [x] Collapsible large outputs
-  - [ ] Command auto-completion
+  - [x] Command auto-completion
   - [ ] Command help/documentation inline
   - [ ] Saved command snippets
   - [ ] Export CLI history
 
 ## Monitoring & Analytics
 
-- [ ] Real-time server stats dashboard (INFO command visualization)
-- [ ] Memory usage breakdown by key pattern
-- [ ] Slow log viewer
-- [ ] Client list viewer
-- [ ] Pub/Sub monitor (subscribe to channels, view messages in real-time)
-- [ ] Command statistics (COMMANDSTATS)
+- [x] Real-time server stats dashboard (INFO command visualization)
+- [x] Memory usage breakdown with visualization (pie chart, fragmentation monitoring)
+- [x] Slow log viewer
+- [x] Client list viewer
+- [x] Pub/Sub monitor (passive stats - channels, subscriber counts)
+  - [ ] Active monitoring (subscribe to channels, view messages in real-time)
+- [x] Command statistics (COMMANDSTATS)
 - [ ] Key access patterns and hot keys
+- [ ] Export monitoring data to CSV/JSON
+- [ ] Historical performance tracking and trends
+- [ ] Alert system for threshold breaches (memory, connections, slow queries)
 
 ## Connectivity (Enterprise-Friendly)
 
-- [ ] SSH tunnel support:
-  - [ ] Built-in SSH client with key/password auth
-  - [ ] Or guided setup for local forwarded ports
+- [x] SSH tunnel support:
+  - [x] Built-in SSH client with key/password auth
+  - [x] Private key authentication support
+  - [x] Auto-detection of available ports (9000-10000)
+  - [x] Secure credential storage in system keychain
+  - [ ] SSH connection status monitoring
+  - [ ] SSH tunnel reconnection on failure
 - [ ] Sentinel awareness:
   - [ ] Discover master/replicas
   - [ ] Read-only mode for replicas
@@ -201,8 +257,13 @@ This file tracks planned features and tech-debt items for the Redis GUI.
 - [x] Command palette for quick actions
   - [x] Searchable command menu with fuzzy matching
   - [x] Keyboard navigation (↑↓ arrows, Enter)
-  - [x] Built-in actions: New Connection, Show Connections, Refresh, Focus Search, Toggle Theme, Toggle Safe Mode, Toggle CLI
-- [ ] Customizable layout (resizable panels)
+  - [x] Built-in actions: New Connection, Show Connections, Refresh, Focus Search, Toggle Theme, Toggle Safe Mode, Toggle CLI, Show/Hide Monitoring
+- [x] Customizable layout (resizable panels)
+  - [x] Horizontal resize for KeyBrowser (250-600px)
+  - [x] Vertical resize for CLI panel (150-500px)
+  - [x] Visual feedback with grip icons
+  - [x] Persist panel sizes to localStorage
+  - [ ] Reset to default layout action
 - [ ] Split view (compare two keys side-by-side)
 - [ ] Workspaces (save UI state per connection)
 
