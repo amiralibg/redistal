@@ -63,7 +63,7 @@ export function Dialog({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800 flex-shrink-0">
+          <div className="flex items-center justify-between p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
             {title && (
               <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
                 {title}

@@ -157,7 +157,7 @@ export function HashEditor({
           <Button
             onClick={() => setAddingField(true)}
             variant="primary"
-            size="sm"
+            className="min-w-36.25 text-sm"
             disabled={safeMode}
           >
             <Plus className="w-4 h-4" />

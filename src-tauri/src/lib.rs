@@ -62,6 +62,10 @@ pub fn run() {
             commands::stream_delete_entry,
             commands::stream_get_range,
             commands::stream_trim,
+            commands::get_server_info,
+            commands::get_client_list,
+            commands::get_slow_log,
+            commands::get_command_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -102,3 +102,41 @@ export interface StreamRangeResult {
   entries: StreamEntry[];
   count: number;
 }
+
+// Monitoring Types
+export interface ServerInfo {
+  version: string;
+  uptime_seconds: number;
+  connected_clients: number;
+  used_memory: number;
+  used_memory_human: string;
+  total_commands_processed: number;
+  ops_per_sec: number;
+  keyspace_hits: number;
+  keyspace_misses: number;
+  total_keys: number;
+}
+
+export interface ClientInfo {
+  id: string;
+  addr: string;
+  name: string;
+  age: number;
+  idle: number;
+  db: number;
+  cmd: string;
+}
+
+export interface SlowLogEntry {
+  id: number;
+  timestamp: number;
+  duration: number;
+  command: string[];
+}
+
+export interface CommandStat {
+  name: string;
+  calls: number;
+  usec: number;
+  usec_per_call: number;
+}

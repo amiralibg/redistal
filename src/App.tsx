@@ -11,12 +11,14 @@ import {
   Sun,
   Moon,
   Terminal,
+  Activity,
 } from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { ConnectionList } from "./components/ConnectionList";
 import { KeyBrowser } from "./components/KeyBrowser";
 import { ValueViewer } from "./components/ValueViewer";
 import { CliPanel } from "./components/CliPanel";
+import { MonitoringPanel } from "./components/MonitoringPanel";
 import { CommandPalette, CommandAction } from "./components/CommandPalette";
 import { Settings } from "./components/Settings";
 import { ResizeHandle } from "./components/ResizeHandle";
@@ -35,6 +37,7 @@ function App() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCliPanel, setShowCliPanel] = useState(true);
+  const [showMonitoring, setShowMonitoring] = useState(false);
   const [editingConnection, setEditingConnection] = useState<
     StoredConnection | undefined
   >(undefined);
@@ -220,6 +223,16 @@ function App() {
       keywords: ["terminal", "command", "console", "cli"],
       action: () => setShowCliPanel(!showCliPanel),
     },
+    {
+      id: "toggle-monitoring",
+      label: showMonitoring ? "Hide Monitoring" : "Show Monitoring",
+      description: showMonitoring
+        ? "Switch back to value viewer"
+        : "View server monitoring and analytics",
+      icon: <Activity className="w-4 h-4" />,
+      keywords: ["monitoring", "analytics", "stats", "performance", "metrics"],
+      action: () => setShowMonitoring(!showMonitoring),
+    },
   ];
 
   return (
@@ -284,6 +297,22 @@ function App() {
           <div className="flex items-center gap-3">
             {activeConnectionId && (
               <>
+                <IconButton
+                  onClick={() => {
+                    setShowMonitoring(!showMonitoring);
+                  }}
+                  variant={showMonitoring ? "default" : "ghost"}
+                  size="md"
+                  title="Toggle monitoring panel"
+                  className={
+                    showMonitoring
+                      ? "bg-brand-500 text-white hover:bg-brand-600"
+                      : ""
+                  }
+                >
+                  <Activity className="w-5 h-5" />
+                </IconButton>
+
                 <IconButton
                   onClick={() => setSafeMode(!safeMode)}
                   variant={safeMode ? "ghost" : "ghost"}
@@ -377,9 +406,13 @@ function App() {
           className="flex-1 flex flex-col overflow-hidden"
           ref={cliPanelResize.resizeRef}
         >
-          {/* Value Viewer */}
+          {/* Value Viewer or Monitoring Panel */}
           <div className="flex-1 overflow-hidden">
-            <ValueViewer />
+            {showMonitoring && activeConnectionId ? (
+              <MonitoringPanel connectionId={activeConnectionId} />
+            ) : (
+              <ValueViewer />
+            )}
           </div>
 
           {/* CLI Panel */}

@@ -11,6 +11,10 @@ import {
   PaginatedZSetResult,
   PaginatedHashResult,
   StreamRangeResult,
+  ServerInfo,
+  ClientInfo,
+  SlowLogEntry,
+  CommandStat,
 } from "../types/redis";
 import { cache, cacheKeys } from "./cache";
 
@@ -422,5 +426,25 @@ export const redisApi = {
     cache.delete(cacheKeys.value(connectionId, key));
     cache.delete(cacheKeys.keyInfo(connectionId, key));
     return removed;
+  },
+
+  // Monitoring APIs
+  async getServerInfo(connectionId: string): Promise<ServerInfo> {
+    return invoke("get_server_info", { connectionId });
+  },
+
+  async getClientList(connectionId: string): Promise<ClientInfo[]> {
+    return invoke("get_client_list", { connectionId });
+  },
+
+  async getSlowLog(
+    connectionId: string,
+    count: number = 128,
+  ): Promise<SlowLogEntry[]> {
+    return invoke("get_slow_log", { connectionId, count });
+  },
+
+  async getCommandStats(connectionId: string): Promise<CommandStat[]> {
+    return invoke("get_command_stats", { connectionId });
   },
 };

@@ -1154,3 +1154,283 @@ fn parse_stream_entries(value: redis::Value) -> Result<Vec<StreamEntry>, String>
 
     Ok(entries)
 }
+
+// Monitoring Commands
+
+#[derive(Debug, Serialize)]
+pub struct ServerInfo {
+    pub version: String,
+    pub uptime_seconds: u64,
+    pub connected_clients: u32,
+    pub used_memory: u64,
+    pub used_memory_human: String,
+    pub total_commands_processed: u64,
+    pub ops_per_sec: f64,
+    pub keyspace_hits: u64,
+    pub keyspace_misses: u64,
+    pub total_keys: u64,
+}
+
+#[tauri::command]
+pub async fn get_server_info(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<ServerInfo, String> {
+    let manager = state.redis_manager.lock().unwrap();
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    // Get INFO output
+    let info: String = redis::cmd("INFO")
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    // Parse INFO output
+    let mut server_info = ServerInfo {
+        version: String::from("unknown"),
+        uptime_seconds: 0,
+        connected_clients: 0,
+        used_memory: 0,
+        used_memory_human: String::from("0B"),
+        total_commands_processed: 0,
+        ops_per_sec: 0.0,
+        keyspace_hits: 0,
+        keyspace_misses: 0,
+        total_keys: 0,
+    };
+
+    for line in info.lines() {
+        let parts: Vec<&str> = line.split(':').collect();
+        if parts.len() == 2 {
+            let key = parts[0];
+            let value = parts[1];
+
+            match key {
+                "redis_version" => server_info.version = value.to_string(),
+                "uptime_in_seconds" => server_info.uptime_seconds = value.parse().unwrap_or(0),
+                "connected_clients" => server_info.connected_clients = value.parse().unwrap_or(0),
+                "used_memory" => server_info.used_memory = value.parse().unwrap_or(0),
+                "used_memory_human" => server_info.used_memory_human = value.to_string(),
+                "total_commands_processed" => {
+                    server_info.total_commands_processed = value.parse().unwrap_or(0)
+                }
+                "instantaneous_ops_per_sec" => {
+                    server_info.ops_per_sec = value.parse().unwrap_or(0.0)
+                }
+                "keyspace_hits" => server_info.keyspace_hits = value.parse().unwrap_or(0),
+                "keyspace_misses" => server_info.keyspace_misses = value.parse().unwrap_or(0),
+                _ => {}
+            }
+        }
+    }
+
+    // Get total keys from keyspace
+    for line in info.lines() {
+        if line.starts_with("db") {
+            if let Some(keys_part) = line.split(',').next() {
+                if let Some(keys_str) = keys_part.split('=').nth(1) {
+                    if let Ok(keys) = keys_str.parse::<u64>() {
+                        server_info.total_keys += keys;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(server_info)
+}
+
+#[derive(Debug, Serialize)]
+pub struct ClientInfo {
+    pub id: String,
+    pub addr: String,
+    pub name: String,
+    pub age: u64,
+    pub idle: u64,
+    pub db: u32,
+    pub cmd: String,
+}
+
+#[tauri::command]
+pub async fn get_client_list(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<ClientInfo>, String> {
+    let manager = state.redis_manager.lock().unwrap();
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let clients_str: String = redis::cmd("CLIENT")
+        .arg("LIST")
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    let mut clients = Vec::new();
+
+    for line in clients_str.lines() {
+        let mut client = ClientInfo {
+            id: String::new(),
+            addr: String::new(),
+            name: String::new(),
+            age: 0,
+            idle: 0,
+            db: 0,
+            cmd: String::new(),
+        };
+
+        for part in line.split_whitespace() {
+            let kv: Vec<&str> = part.split('=').collect();
+            if kv.len() == 2 {
+                match kv[0] {
+                    "id" => client.id = kv[1].to_string(),
+                    "addr" => client.addr = kv[1].to_string(),
+                    "name" => client.name = kv[1].to_string(),
+                    "age" => client.age = kv[1].parse().unwrap_or(0),
+                    "idle" => client.idle = kv[1].parse().unwrap_or(0),
+                    "db" => client.db = kv[1].parse().unwrap_or(0),
+                    "cmd" => client.cmd = kv[1].to_string(),
+                    _ => {}
+                }
+            }
+        }
+
+        clients.push(client);
+    }
+
+    Ok(clients)
+}
+
+#[derive(Debug, Serialize)]
+pub struct SlowLogEntry {
+    pub id: u64,
+    pub timestamp: u64,
+    pub duration: u64,
+    pub command: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn get_slow_log(
+    connection_id: String,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<SlowLogEntry>, String> {
+    let manager = state.redis_manager.lock().unwrap();
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let result: Vec<Vec<redis::Value>> = redis::cmd("SLOWLOG")
+        .arg("GET")
+        .arg(count)
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    let mut entries = Vec::new();
+
+    for entry in result {
+        if entry.len() >= 4 {
+            let id = match &entry[0] {
+                redis::Value::Int(i) => *i as u64,
+                _ => continue,
+            };
+
+            let timestamp = match &entry[1] {
+                redis::Value::Int(i) => *i as u64,
+                _ => continue,
+            };
+
+            let duration = match &entry[2] {
+                redis::Value::Int(i) => *i as u64,
+                _ => continue,
+            };
+
+            let mut command = Vec::new();
+            if let redis::Value::Array(cmd_parts) = &entry[3] {
+                for part in cmd_parts {
+                    if let redis::Value::BulkString(s) = part {
+                        command.push(String::from_utf8_lossy(s).to_string());
+                    }
+                }
+            }
+
+            entries.push(SlowLogEntry {
+                id,
+                timestamp,
+                duration,
+                command,
+            });
+        }
+    }
+
+    Ok(entries)
+}
+
+#[derive(Debug, Serialize)]
+pub struct CommandStat {
+    pub name: String,
+    pub calls: u64,
+    pub usec: u64,
+    pub usec_per_call: f64,
+}
+
+#[tauri::command]
+pub async fn get_command_stats(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<CommandStat>, String> {
+    let manager = state.redis_manager.lock().unwrap();
+    let mut conn = manager
+        .get_connection(&connection_id)
+        .ok_or("Connection not found")?;
+
+    let info: String = redis::cmd("INFO")
+        .arg("commandstats")
+        .query(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+    let mut stats = Vec::new();
+
+    for line in info.lines() {
+        if line.starts_with("cmdstat_") {
+            let parts: Vec<&str> = line.split(':').collect();
+            if parts.len() == 2 {
+                let name = parts[0].strip_prefix("cmdstat_").unwrap_or(parts[0]);
+                let stat_parts = parts[1];
+
+                let mut calls = 0u64;
+                let mut usec = 0u64;
+
+                for part in stat_parts.split(',') {
+                    let kv: Vec<&str> = part.split('=').collect();
+                    if kv.len() == 2 {
+                        match kv[0] {
+                            "calls" => calls = kv[1].parse().unwrap_or(0),
+                            "usec" => usec = kv[1].parse().unwrap_or(0),
+                            _ => {}
+                        }
+                    }
+                }
+
+                let usec_per_call = if calls > 0 {
+                    usec as f64 / calls as f64
+                } else {
+                    0.0
+                };
+
+                stats.push(CommandStat {
+                    name: name.to_string(),
+                    calls,
+                    usec,
+                    usec_per_call,
+                });
+            }
+        }
+    }
+
+    // Sort by calls descending
+    stats.sort_by(|a, b| b.calls.cmp(&a.calls));
+
+    Ok(stats)
+}
