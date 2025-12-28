@@ -12,6 +12,7 @@ import {
   Moon,
   Terminal,
   Activity,
+  LogOut,
 } from "lucide-react";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { ConnectionList } from "./components/ConnectionList";
@@ -28,6 +29,8 @@ import { useLoadConnections } from "./hooks/useLoadConnections";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useResize } from "./hooks/useResize";
 import { Button, IconButton, Badge } from "./components/ui";
+import { redisApi } from "./lib/tauri-api";
+import { useToast } from "./lib/toast-context";
 import type { StoredConnection } from "./types/redis";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -47,8 +50,26 @@ function App() {
     savedConnections,
     safeMode,
     setSafeMode,
+    removeConnection,
   } = useRedisStore();
   const { theme, toggleTheme } = useTheme();
+  const toast = useToast();
+
+  const handleDisconnect = async () => {
+    if (!activeConnectionId) return;
+
+    try {
+      await redisApi.disconnect(activeConnectionId);
+      removeConnection(activeConnectionId);
+      setShowMonitoring(false);
+      toast.success("Disconnected", "Successfully disconnected from Redis");
+    } catch (error) {
+      toast.error(
+        "Disconnect failed",
+        error instanceof Error ? error.message : "Failed to disconnect"
+      );
+    }
+  };
 
   // Refs for triggering actions from keyboard shortcuts
   const refreshKeysRef = useRef<(() => void) | null>(null);
@@ -235,6 +256,18 @@ function App() {
       keywords: ["monitoring", "analytics", "stats", "performance", "metrics"],
       action: () => setShowMonitoring(!showMonitoring),
     },
+    ...(activeConnectionId
+      ? [
+          {
+            id: "disconnect",
+            label: "Disconnect",
+            description: "Disconnect from the current Redis server",
+            icon: <LogOut className="w-4 h-4" />,
+            keywords: ["close", "exit", "logout", "leave"],
+            action: handleDisconnect,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -291,6 +324,15 @@ function App() {
                 <Badge variant="info" size="sm">
                   DB {activeConnection.database}
                 </Badge>
+                <IconButton
+                  onClick={handleDisconnect}
+                  variant="ghost"
+                  size="sm"
+                  title="Disconnect"
+                  className="text-error-light dark:text-error-dark hover:bg-error-light/10 dark:hover:bg-error-dark/10"
+                >
+                  <LogOut className="w-4 h-4" />
+                </IconButton>
               </div>
             )}
           </div>

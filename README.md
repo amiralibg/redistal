@@ -1,263 +1,111 @@
 # Redistal
 
-A modern, open-source Redis GUI built with Tauri, React, and Rust.
+A fast, native Redis GUI for macOS. Built with Tauri, React, and Rust.
 
 <p align="center">
-  <img src="src-tauri/icons/128x128.png" width="96" alt="Redistal app icon" />
+  <img src="src-tauri/icons/128x128.png" width="96" alt="Redistal" />
 </p>
 
-![Redistal Banner](https://img.shields.io/badge/Redis-GUI-red?style=for-the-badge&logo=redis)
-![Tauri](https://img.shields.io/badge/Tauri-2.0-blue?style=for-the-badge&logo=tauri)
-![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
-![Rust](https://img.shields.io/badge/Rust-latest-orange?style=for-the-badge&logo=rust)
+## Download
+
+**[Download Redistal v0.3.0 for macOS (Apple Silicon)](https://github.com/amiralibg/Redistal/releases/latest)**
+
+Or build from source (see below).
+
+## What it does
+
+- Browse and edit Redis keys with a clean interface
+- Full support for all data types: strings, lists, sets, sorted sets, hashes, and streams
+- SSH tunnel connections for remote servers
+- Built-in CLI with command history
+- Server monitoring and stats
+- Dark and light themes
+- Secure credential storage via system keychain
+
+## Screenshots
+
+*Coming soon*
 
 ## Features
 
-### ✅ Current Features
+### Connection Management
+- Local and remote Redis connections
+- SSH tunnel support (password or private key auth)
+- TLS/SSL encryption
+- Multiple database selection
+- Save and manage connections
+- Passwords stored in system keychain
 
-- **Connection Management**
-  - Connect to local and remote Redis instances
-  - Support for Redis with authentication (username/password)
-  - TLS/SSL support
-  - Multiple database selection (0-15)
-  - Secure credential storage using system keyring
+### Key Browser
+- Pattern-based search (`user:*`, `session:*`)
+- Filter by key type
+- Keyboard shortcuts for quick navigation
 
-- **Key Browser**
-  - Search keys with pattern matching (e.g., `user:*`)
-  - Real-time key listing
-  - Key type indicators
-  - Quick refresh capability
+### Value Editing
+Type-aware editors for each Redis data type:
+- **String**: Monaco editor with JSON detection
+- **Hash**: Field table with add/edit/delete
+- **List**: Push, pop, edit by index
+- **Set**: Add/remove members
+- **ZSet**: Score management, sortable
+- **Stream**: View entries, add/delete, trim
 
-- **Value Viewer**
-  - Monaco Editor integration for syntax highlighting
-  - Type-aware editors with safe-mode support:
-    - **String**: text/JSON editing with auto-detection and formatting
-    - **Hash**: add/edit/delete fields, search, pagination
-    - **List**: push/pop, edit by index, remove items, pagination
-    - **Set**: add/remove members, search, pagination
-    - **Sorted Set (ZSet)**: add/remove/increment scores, sortable table, pagination
-    - **Streams**: view entries, add multi-field entries, delete entries, search, configurable entry count
-  - JSON auto-detection and formatting
-  - Key deletion
+### CLI
+- Execute any Redis command
+- History navigation (↑/↓)
+- Pretty-printed output
+- Dangerous command warnings
 
-- **TTL Management**
-  - View key expiration times
-  - Set/update TTL values
-  - Persist keys (remove expiration)
-
-- **CLI Panel**
-  - Execute raw Redis commands
-  - Command history with ↑/↓ navigation
-  - Syntax highlighting for commands
-  - RESP-like pretty output with type-aware formatting (tables for collections)
-  - Collapsible large outputs
-  - Error handling with clear feedback
-
-### 🚧 Planned Features
-
-- **Streams Enhancements**
-  - Consumer group management
-  - Advanced browsing (pending entries, claims, etc.)
-
-- **Pub/Sub Monitor**
-  - Subscribe to channels
-  - View real-time messages
-  - Pattern subscription support
-
-- **Advanced Features**
-  - Bulk operations
-  - Data import/export
-  - Key renaming
-  - Connection bookmarks
-  - Dark/Light theme toggle
-  - Performance monitoring
-
-## Tech Stack
-
-### Frontend
-- **React 19** - UI framework
-- **TypeScript** - Type safety
-- **Tailwind CSS - Utility-first styling
-- **Zustand** - State management
-- **Monaco Editor** - Code editor for JSON/values
-- **Lucide React** - Icon library
-- **Vite 7** - Build tool
-
-### Backend (Tauri)
-- **Rust** - Native backend
-- **redis-rs** - Official Redis client
-- **tokio** - Async runtime
-- **serde** - Serialization
-- **keyring** - Secure credential storage
+### Monitoring
+- Server info and stats
+- Connected clients
+- Slow query log
+- Command statistics
 
 ## Getting Started
 
-### Prerequisites
+### Requirements
+- Node.js 18+
+- Rust (latest stable)
+- A Redis server to connect to
 
-- **Node.js** (v18 or higher)
-- **Rust** (latest stable)
-- **Redis** server (for testing)
+### Development
 
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/redistal.git
+git clone https://github.com/amiralibg/Redistal.git
 cd redistal
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Run in development mode:
-```bash
 npm run tauri dev
 ```
 
-### Building
-
-To create a production build:
+### Build
 
 ```bash
 npm run tauri build
 ```
 
-The built application will be in `src-tauri/target/release`.
+Output goes to `src-tauri/target/release/bundle/`.
 
-## Usage
+## Keyboard Shortcuts
 
-### Connecting to Redis
+| Shortcut | Action |
+|----------|--------|
+| `⌘K` | Focus search |
+| `⌘R` | Refresh keys |
+| `⌘N` | New connection |
+| `⌘P` | Command palette |
+| `⌘\`` | Toggle CLI panel |
+| `Esc` | Close dialogs |
 
-1. Click the "New Connection" button in the header
-2. Fill in your Redis connection details:
-   - **Connection Name**: A friendly name for your connection
-   - **Host**: Redis server hostname (e.g., `localhost`)
-   - **Port**: Redis port (default: `6379`)
-   - **Username**: (Optional) Redis username for ACL
-   - **Password**: (Optional) Redis password
-   - **Database**: Database number (0-15)
-   - **Use TLS**: Enable for secure connections
-3. Click "Connect"
+## Tech Stack
 
-### Browsing Keys
-
-- Use the search bar to filter keys with patterns (e.g., `user:*`, `session:*`)
-- Click on any key to view its value
-- The key type and size are displayed in the value viewer
-
-### Editing Values
-
-- Click on a key to load its value in the Monaco Editor
-- Edit the value (JSON formatting is automatic)
-- Click "Save" to persist changes
-- Click "Delete" to remove the key
-
-### Managing TTL
-
-- Click on the TTL value in the value viewer
-- Enter a new TTL in seconds (-1 for no expiration)
-- Click "Save" to apply
-
-### Using the CLI
-
-- Type Redis commands in the CLI panel at the bottom
-- Press Enter to execute
-- Use ↑/↓ arrow keys to navigate command history
-- Examples:
-  - `GET mykey`
-  - `SET mykey "hello"`
-  - `KEYS user:*`
-  - `HGETALL myhash`
-
-## Project Structure
-
-```
-redistal/
-├── src/                      # React frontend
-│   ├── components/          # UI components
-│   │   ├── ConnectionDialog.tsx
-│   │   ├── KeyBrowser.tsx
-│   │   ├── ValueViewer.tsx
-│   │   └── CliPanel.tsx
-│   ├── store/               # Zustand state management
-│   │   └── useRedisStore.ts
-│   ├── types/               # TypeScript types
-│   │   └── redis.ts
-│   ├── lib/                 # Utilities
-│   │   └── tauri-api.ts
-│   ├── App.tsx              # Main app component
-│   ├── main.tsx             # Entry point
-│   └── index.css            # Global styles
-├── src-tauri/               # Rust backend
-│   ├── src/
-│   │   ├── commands.rs      # Tauri commands
-│   │   ├── redis_client.rs  # Redis connection manager
-│   │   └── lib.rs           # Main library
-│   ├── Cargo.toml           # Rust dependencies
-│   └── tauri.conf.json      # Tauri configuration
-├── package.json
-├── vite.config.ts
-└── README.md
-```
-
-## Development
-
-### Running Tests
-
-```bash
-# Run Rust tests
-cd src-tauri
-cargo test
-
-# Run frontend tests (if configured)
-npm test
-```
-
-### Code Style
-
-- Frontend: ESLint + Prettier
-- Backend: `rustfmt`
-
-```bash
-# Format Rust code
-cd src-tauri
-cargo fmt
-
-# Format frontend code
-npm run format
-```
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Zustand, Monaco Editor
+- **Backend**: Rust, Tauri 2.0, redis-rs, ssh2
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+PRs welcome. Please open an issue first for major changes.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Tauri](https://tauri.app/) - The framework that makes this possible
-- [redis-rs](https://github.com/redis-rs/redis-rs) - Excellent Redis client for Rust
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) - Powerful code editor
-- [Lucide](https://lucide.dev/) - Beautiful icons
-
-## Support
-
-If you encounter any issues or have questions, please [open an issue](https://github.com/yourusername/redistal/issues).
-
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
-
----
-
-Made with ❤️ by the open-source community
+MIT

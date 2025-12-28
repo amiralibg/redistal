@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Trash2, Edit2, Loader2 } from "lucide-react";
+import { Database, Trash2, Edit2 } from "lucide-react";
 import { Dialog, Button, Badge, IconButton } from "./ui";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { useRedisStore } from "../store/useRedisStore";
@@ -38,10 +38,28 @@ export function ConnectionList({
       // Get password from keychain
       const password = await redisApi.getConnectionPassword(connection.id);
 
-      // Build full config with password
+      // Get SSH credentials from keychain if SSH tunnel is enabled
+      let sshPassword: string | null = null;
+      let sshPassphrase: string | null = null;
+      if (connection.ssh_tunnel?.enabled) {
+        if (connection.ssh_tunnel.auth_method === "Password") {
+          sshPassword = await redisApi.getSshPassword(connection.id);
+        } else if (connection.ssh_tunnel.auth_method === "PrivateKey") {
+          sshPassphrase = await redisApi.getSshPassphrase(connection.id);
+        }
+      }
+
+      // Build full config with password and SSH credentials
       const config = {
         ...connection,
         password: password || undefined,
+        ssh_tunnel: connection.ssh_tunnel?.enabled
+          ? {
+              ...connection.ssh_tunnel,
+              ssh_password: sshPassword || undefined,
+              ssh_passphrase: sshPassphrase || undefined,
+            }
+          : undefined,
       };
 
       // Connect to Redis
@@ -166,11 +184,7 @@ export function ConnectionList({
                           loading={isConnecting}
                           disabled={isConnecting}
                         >
-                          {isConnecting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            "Connect"
-                          )}
+                          Connect
                         </Button>
                       )}
 

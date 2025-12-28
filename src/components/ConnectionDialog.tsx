@@ -55,12 +55,13 @@ export function ConnectionDialog({
   // Populate form when editing a connection
   useEffect(() => {
     if (editConnection && isOpen) {
+      // First set the basic form data
       setFormData({
         name: editConnection.name,
         host: editConnection.host,
         port: editConnection.port,
         username: editConnection.username || "",
-        password: "", // Don't pre-fill password for security
+        password: "", // Will be loaded from keychain
         database: editConnection.database,
         use_tls: editConnection.use_tls,
         ssh_tunnel_enabled: editConnection.ssh_tunnel?.enabled || false,
@@ -68,12 +69,40 @@ export function ConnectionDialog({
         ssh_port: editConnection.ssh_tunnel?.ssh_port || 22,
         ssh_username: editConnection.ssh_tunnel?.ssh_username || "",
         ssh_auth_method: editConnection.ssh_tunnel?.auth_method || "Password",
-        ssh_password: "", // Don't pre-fill for security
+        ssh_password: "", // Will be loaded from keychain
         ssh_private_key_path:
           editConnection.ssh_tunnel?.ssh_private_key_path || "",
-        ssh_passphrase: "", // Don't pre-fill for security
+        ssh_passphrase: "", // Will be loaded from keychain
       });
       setSaveConnection(true);
+
+      // Then fetch passwords from keychain
+      const loadPasswords = async () => {
+        try {
+          const [password, sshPassword, sshPassphrase] = await Promise.all([
+            redisApi.getConnectionPassword(editConnection.id),
+            editConnection.ssh_tunnel?.enabled &&
+            editConnection.ssh_tunnel?.auth_method === "Password"
+              ? redisApi.getSshPassword(editConnection.id)
+              : Promise.resolve(null),
+            editConnection.ssh_tunnel?.enabled &&
+            editConnection.ssh_tunnel?.auth_method === "PrivateKey"
+              ? redisApi.getSshPassphrase(editConnection.id)
+              : Promise.resolve(null),
+          ]);
+
+          setFormData((prev) => ({
+            ...prev,
+            password: password || "",
+            ssh_password: sshPassword || "",
+            ssh_passphrase: sshPassphrase || "",
+          }));
+        } catch (err) {
+          console.error("Failed to load passwords from keychain:", err);
+        }
+      };
+
+      loadPasswords();
     } else if (!isOpen) {
       // Reset form when dialog closes
       setFormData({
@@ -195,16 +224,53 @@ export function ConnectionDialog({
           : undefined,
       };
 
-      console.log(config);
-
       // If editing, we just update the saved connection without connecting
       if (editConnection) {
         if (saveConnection) {
           try {
+            // If password fields are empty, fetch existing passwords from keychain
+            // to preserve them (since we don't pre-fill for security)
+            let finalConfig = { ...config };
+
+            if (!formData.password) {
+              const existingPassword = await redisApi.getConnectionPassword(
+                editConnection.id
+              );
+              if (existingPassword) {
+                finalConfig.password = existingPassword;
+              }
+            }
+
+            if (
+              formData.ssh_tunnel_enabled &&
+              formData.ssh_auth_method === "Password" &&
+              !formData.ssh_password
+            ) {
+              const existingSshPassword = await redisApi.getSshPassword(
+                editConnection.id
+              );
+              if (existingSshPassword && finalConfig.ssh_tunnel) {
+                finalConfig.ssh_tunnel.ssh_password = existingSshPassword;
+              }
+            }
+
+            if (
+              formData.ssh_tunnel_enabled &&
+              formData.ssh_auth_method === "PrivateKey" &&
+              !formData.ssh_passphrase
+            ) {
+              const existingSshPassphrase = await redisApi.getSshPassphrase(
+                editConnection.id
+              );
+              if (existingSshPassphrase && finalConfig.ssh_tunnel) {
+                finalConfig.ssh_tunnel.ssh_passphrase = existingSshPassphrase;
+              }
+            }
+
             // Delete old connection
             await redisApi.deleteSavedConnection(editConnection.id);
-            // Save updated connection
-            await redisApi.saveConnection(config);
+            // Save updated connection with preserved passwords
+            await redisApi.saveConnection(finalConfig);
 
             // Reload connections to update the list
             const connections = await redisApi.loadConnections();
@@ -212,14 +278,14 @@ export function ConnectionDialog({
 
             toast.success(
               "Connection updated",
-              `Updated connection ${config.name}`,
+              `Updated connection ${config.name}`
             );
             onClose();
           } catch (saveError) {
             console.error("Failed to update connection:", saveError);
             toast.error(
               "Update failed",
-              `Failed to update connection ${config.name}`,
+              `Failed to update connection ${config.name}`
             );
           }
         }
@@ -296,6 +362,11 @@ export function ConnectionDialog({
             value={formData.host}
             onChange={(e) => setFormData({ ...formData, host: e.target.value })}
             placeholder="localhost"
+            helperText={
+              formData.ssh_tunnel_enabled
+                ? "With SSH Tunnel enabled, Host/Port are resolved on the SSH server (VPS). For Docker Redis bound to 127.0.0.1, use 127.0.0.1."
+                : undefined
+            }
             required
           />
 

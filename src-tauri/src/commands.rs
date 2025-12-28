@@ -441,8 +441,10 @@ pub async fn delete_saved_connection(
 ) -> Result<bool, String> {
     let store = state.connection_store.lock().unwrap();
 
-    // Delete password from keychain
+    // Delete all passwords from keychain
     let _ = state.password_store.delete_password(&connection_id);
+    let _ = state.password_store.delete_ssh_password(&connection_id);
+    let _ = state.password_store.delete_ssh_passphrase(&connection_id);
 
     store
         .remove_connection(&connection_id)
@@ -458,6 +460,28 @@ pub async fn get_connection_password(
         .password_store
         .get_password(&connection_id)
         .map_err(|e| format!("Failed to get password: {}", e))
+}
+
+#[tauri::command]
+pub async fn get_ssh_password(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    state
+        .password_store
+        .get_ssh_password(&connection_id)
+        .map_err(|e| format!("Failed to get SSH password: {}", e))
+}
+
+#[tauri::command]
+pub async fn get_ssh_passphrase(
+    connection_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    state
+        .password_store
+        .get_ssh_passphrase(&connection_id)
+        .map_err(|e| format!("Failed to get SSH passphrase: {}", e))
 }
 
 #[tauri::command]

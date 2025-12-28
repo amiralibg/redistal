@@ -175,6 +175,14 @@ export const redisApi = {
     return invoke("get_connection_password", { connectionId });
   },
 
+  async getSshPassword(connectionId: string): Promise<string | null> {
+    return invoke("get_ssh_password", { connectionId });
+  },
+
+  async getSshPassphrase(connectionId: string): Promise<string | null> {
+    return invoke("get_ssh_passphrase", { connectionId });
+  },
+
   async testConnection(config: ConnectionConfig): Promise<ConnectionStatus> {
     return invoke("test_connection", { config });
   },

@@ -41,6 +41,8 @@ pub fn run() {
             commands::load_connections,
             commands::delete_saved_connection,
             commands::get_connection_password,
+            commands::get_ssh_password,
+            commands::get_ssh_passphrase,
             commands::test_connection,
             commands::get_key_memory_usage,
             commands::get_list_range,

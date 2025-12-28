@@ -50,6 +50,11 @@ export const useRedisStore = create<RedisStore>((set) => ({
       connections: state.connections.filter((c) => c.id !== id),
       activeConnectionId:
         state.activeConnectionId === id ? null : state.activeConnectionId,
+      // Clear keys and selection when disconnecting the active connection
+      keys: state.activeConnectionId === id ? [] : state.keys,
+      selectedKey: state.activeConnectionId === id ? null : state.selectedKey,
+      selectedKeyInfo:
+        state.activeConnectionId === id ? null : state.selectedKeyInfo,
     })),
   setSavedConnections: (connections) => set({ savedConnections: connections }),
   removeSavedConnection: (id) =>

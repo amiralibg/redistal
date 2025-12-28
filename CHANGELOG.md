@@ -2,7 +2,26 @@
 
 All notable changes to Redistal will be documented in this file.
 
-## [Unreleased]
+## [0.3.0] - 2025-12-28
+
+### Added
+- **SSH Tunnel Support**: Connect to Redis through SSH jump hosts
+  - Password and private key authentication
+  - Automatic local port allocation
+  - Per-connection SSH sessions for reliability
+- **Disconnect Button**: Easily disconnect from current connection without restarting
+- **SSH Credential Storage**: SSH passwords and key passphrases stored in system keychain
+- **Password Display in Edit**: Existing passwords now show when editing saved connections
+
+### Fixed
+- SSH tunnel stability issues (timeouts, connection resets)
+- Updating passwords for existing connections now saves correctly
+- ValueViewer clears properly when disconnecting (no stale data)
+- SSH credentials now load correctly when connecting from saved list
+
+### Changed
+- Rewrote SSH tunnel implementation for better reliability
+- Improved connection state cleanup on disconnect
 
 ## [0.2.0] - 2025-12-27
 
@@ -84,11 +103,9 @@ All notable changes to Redistal will be documented in this file.
 - Barrel exports for UI components
 - Better TypeScript types and props
 
-## Previous Work
+## [0.1.0] - Initial Release
 
-### [0.1.0] - Initial Release
-
-#### Added
+### Added
 - Connection management for Redis instances
 - Key browsing with pattern search using SCAN (not KEYS)
 - Value viewer with Monaco Editor
