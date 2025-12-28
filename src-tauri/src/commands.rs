@@ -371,6 +371,40 @@ pub async fn save_connection(
             .map_err(|e| format!("Failed to save password: {}", e))?;
     }
 
+    // Save SSH credentials to keychain if provided
+    if let Some(ref ssh_config) = connection.ssh_tunnel {
+        if ssh_config.enabled {
+            if let Some(ref ssh_password) = ssh_config.ssh_password {
+                state
+                    .password_store
+                    .save_ssh_password(&connection.id, ssh_password)
+                    .map_err(|e| format!("Failed to save SSH password: {}", e))?;
+            }
+            if let Some(ref ssh_passphrase) = ssh_config.ssh_passphrase {
+                state
+                    .password_store
+                    .save_ssh_passphrase(&connection.id, ssh_passphrase)
+                    .map_err(|e| format!("Failed to save SSH passphrase: {}", e))?;
+            }
+        }
+    }
+
+    // Convert SSH tunnel config to stored version (without sensitive data)
+    let stored_ssh_tunnel = connection.ssh_tunnel.map(|ssh| {
+        use crate::connection_store::StoredSshTunnelConfig;
+        StoredSshTunnelConfig {
+            enabled: ssh.enabled,
+            ssh_host: ssh.ssh_host,
+            ssh_port: ssh.ssh_port,
+            ssh_username: ssh.ssh_username,
+            auth_method: ssh.auth_method,
+            ssh_password: None, // Never store in JSON
+            ssh_private_key_path: ssh.ssh_private_key_path,
+            ssh_passphrase: None, // Never store in JSON
+            local_port: ssh.local_port,
+        }
+    });
+
     // Save connection (without password) to disk
     let stored_conn = StoredConnection {
         id: connection.id,
@@ -381,6 +415,7 @@ pub async fn save_connection(
         password: None, // Never store password in JSON
         database: connection.database,
         use_tls: connection.use_tls,
+        ssh_tunnel: stored_ssh_tunnel,
     };
 
     store

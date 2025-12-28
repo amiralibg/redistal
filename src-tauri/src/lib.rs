@@ -1,6 +1,7 @@
 mod commands;
 mod connection_store;
 mod redis_client;
+mod ssh_tunnel;
 
 use commands::AppState;
 use connection_store::{ConnectionStore, PasswordStore};

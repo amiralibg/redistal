@@ -27,4 +27,4 @@ tokio = { version = "1", features = ["full"] }
 keyring = { version = "3.6", features = ["apple-native", "windows-native", "linux-native"] }
 anyhow = "1.0"
 thiserror = "2.0"
-
+ssh2 = "0.9"

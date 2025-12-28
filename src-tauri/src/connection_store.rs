@@ -1,3 +1,4 @@
+use crate::redis_client::SshAuthMethod;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -16,6 +17,24 @@ pub struct StoredConnection {
     pub password: Option<String>,
     pub database: u8,
     pub use_tls: bool,
+    pub ssh_tunnel: Option<StoredSshTunnelConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredSshTunnelConfig {
+    pub enabled: bool,
+    pub ssh_host: String,
+    pub ssh_port: u16,
+    pub ssh_username: String,
+    pub auth_method: SshAuthMethod,
+    #[serde(skip)] // Don't serialize SSH password to disk
+    #[allow(dead_code)] // Will be populated when loading from keychain
+    pub ssh_password: Option<String>,
+    pub ssh_private_key_path: Option<String>,
+    #[serde(skip)] // Don't serialize passphrase to disk
+    #[allow(dead_code)] // Will be populated when loading from keychain
+    pub ssh_passphrase: Option<String>,
+    pub local_port: Option<u16>,
 }
 
 pub struct ConnectionStore {
@@ -146,6 +165,108 @@ impl PasswordStore {
             Err(keyring::Error::NoEntry) => Ok(()), // Already deleted
             Err(e) => Err(anyhow::anyhow!(
                 "Failed to delete password from keyring: {}",
+                e
+            )),
+        }
+    }
+
+    // SSH password storage
+    #[allow(dead_code)] // Used when loading connections from storage
+    pub fn get_ssh_password(&self, connection_id: &str) -> Result<Option<String>> {
+        let entry = keyring::Entry::new(
+            &self.service_name,
+            &format!("{}_ssh_password", connection_id),
+        )
+        .context("Failed to create keyring entry")?;
+
+        match entry.get_password() {
+            Ok(password) => Ok(Some(password)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to get SSH password from keyring: {}",
+                e
+            )),
+        }
+    }
+
+    pub fn save_ssh_password(&self, connection_id: &str, password: &str) -> Result<()> {
+        let entry = keyring::Entry::new(
+            &self.service_name,
+            &format!("{}_ssh_password", connection_id),
+        )
+        .context("Failed to create keyring entry")?;
+
+        entry
+            .set_password(password)
+            .context("Failed to save SSH password to keyring")?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)] // Used when deleting connections
+    pub fn delete_ssh_password(&self, connection_id: &str) -> Result<()> {
+        let entry = keyring::Entry::new(
+            &self.service_name,
+            &format!("{}_ssh_password", connection_id),
+        )
+        .context("Failed to create keyring entry")?;
+
+        match entry.delete_credential() {
+            Ok(()) => Ok(()),
+            Err(keyring::Error::NoEntry) => Ok(()),
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to delete SSH password from keyring: {}",
+                e
+            )),
+        }
+    }
+
+    // SSH passphrase storage (for private keys)
+    #[allow(dead_code)] // Used when loading connections from storage
+    pub fn get_ssh_passphrase(&self, connection_id: &str) -> Result<Option<String>> {
+        let entry = keyring::Entry::new(
+            &self.service_name,
+            &format!("{}_ssh_passphrase", connection_id),
+        )
+        .context("Failed to create keyring entry")?;
+
+        match entry.get_password() {
+            Ok(passphrase) => Ok(Some(passphrase)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to get SSH passphrase from keyring: {}",
+                e
+            )),
+        }
+    }
+
+    pub fn save_ssh_passphrase(&self, connection_id: &str, passphrase: &str) -> Result<()> {
+        let entry = keyring::Entry::new(
+            &self.service_name,
+            &format!("{}_ssh_passphrase", connection_id),
+        )
+        .context("Failed to create keyring entry")?;
+
+        entry
+            .set_password(passphrase)
+            .context("Failed to save SSH passphrase to keyring")?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)] // Used when deleting connections
+    pub fn delete_ssh_passphrase(&self, connection_id: &str) -> Result<()> {
+        let entry = keyring::Entry::new(
+            &self.service_name,
+            &format!("{}_ssh_passphrase", connection_id),
+        )
+        .context("Failed to create keyring entry")?;
+
+        match entry.delete_credential() {
+            Ok(()) => Ok(()),
+            Err(keyring::Error::NoEntry) => Ok(()),
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to delete SSH passphrase from keyring: {}",
                 e
             )),
         }

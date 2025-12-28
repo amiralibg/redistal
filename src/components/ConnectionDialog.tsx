@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Server, Lock, Database as DatabaseIcon, Shield } from "lucide-react";
+import {
+  Server,
+  Lock,
+  Database as DatabaseIcon,
+  Shield,
+  Network,
+  Key,
+  FileKey,
+} from "lucide-react";
 import { ConnectionConfig } from "../types/redis";
 import type { StoredConnection } from "../types/redis";
 import { redisApi } from "../lib/tauri-api";
@@ -29,6 +37,14 @@ export function ConnectionDialog({
     password: "",
     database: 0,
     use_tls: false,
+    ssh_tunnel_enabled: false,
+    ssh_host: "",
+    ssh_port: 22,
+    ssh_username: "",
+    ssh_auth_method: "password" as "password" | "private_key",
+    ssh_password: "",
+    ssh_private_key_path: "",
+    ssh_passphrase: "",
   });
   const [saveConnection, setSaveConnection] = useState(true);
   const [error, setError] = useState("");
@@ -47,6 +63,15 @@ export function ConnectionDialog({
         password: "", // Don't pre-fill password for security
         database: editConnection.database,
         use_tls: editConnection.use_tls,
+        ssh_tunnel_enabled: editConnection.ssh_tunnel?.enabled || false,
+        ssh_host: editConnection.ssh_tunnel?.ssh_host || "",
+        ssh_port: editConnection.ssh_tunnel?.ssh_port || 22,
+        ssh_username: editConnection.ssh_tunnel?.ssh_username || "",
+        ssh_auth_method: editConnection.ssh_tunnel?.auth_method || "password",
+        ssh_password: "", // Don't pre-fill for security
+        ssh_private_key_path:
+          editConnection.ssh_tunnel?.ssh_private_key_path || "",
+        ssh_passphrase: "", // Don't pre-fill for security
       });
       setSaveConnection(true);
     } else if (!isOpen) {
@@ -59,6 +84,14 @@ export function ConnectionDialog({
         password: "",
         database: 0,
         use_tls: false,
+        ssh_tunnel_enabled: false,
+        ssh_host: "",
+        ssh_port: 22,
+        ssh_username: "",
+        ssh_auth_method: "password",
+        ssh_password: "",
+        ssh_private_key_path: "",
+        ssh_passphrase: "",
       });
       setSaveConnection(true);
       setError("");
@@ -81,6 +114,27 @@ export function ConnectionDialog({
         password: formData.password || undefined,
         database: formData.database,
         use_tls: formData.use_tls,
+        ssh_tunnel: formData.ssh_tunnel_enabled
+          ? {
+              enabled: true,
+              ssh_host: formData.ssh_host,
+              ssh_port: formData.ssh_port,
+              ssh_username: formData.ssh_username,
+              auth_method: formData.ssh_auth_method,
+              ssh_password:
+                formData.ssh_auth_method === "password"
+                  ? formData.ssh_password || undefined
+                  : undefined,
+              ssh_private_key_path:
+                formData.ssh_auth_method === "private_key"
+                  ? formData.ssh_private_key_path || undefined
+                  : undefined,
+              ssh_passphrase:
+                formData.ssh_auth_method === "private_key"
+                  ? formData.ssh_passphrase || undefined
+                  : undefined,
+            }
+          : undefined,
       };
 
       const status = await redisApi.testConnection(config);
@@ -118,6 +172,27 @@ export function ConnectionDialog({
         password: formData.password || undefined,
         database: formData.database,
         use_tls: formData.use_tls,
+        ssh_tunnel: formData.ssh_tunnel_enabled
+          ? {
+              enabled: true,
+              ssh_host: formData.ssh_host,
+              ssh_port: formData.ssh_port,
+              ssh_username: formData.ssh_username,
+              auth_method: formData.ssh_auth_method,
+              ssh_password:
+                formData.ssh_auth_method === "password"
+                  ? formData.ssh_password || undefined
+                  : undefined,
+              ssh_private_key_path:
+                formData.ssh_auth_method === "private_key"
+                  ? formData.ssh_private_key_path || undefined
+                  : undefined,
+              ssh_passphrase:
+                formData.ssh_auth_method === "private_key"
+                  ? formData.ssh_passphrase || undefined
+                  : undefined,
+            }
+          : undefined,
       };
 
       // If editing, we just update the saved connection without connecting
@@ -306,6 +381,167 @@ export function ConnectionDialog({
               </div>
             </label>
           </div>
+        </div>
+
+        {/* SSH Tunnel Configuration */}
+        <div className="space-y-4 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
+              <Network className="w-4 h-4" />
+              SSH Tunnel (Optional)
+            </h3>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.ssh_tunnel_enabled}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    ssh_tunnel_enabled: e.target.checked,
+                  })
+                }
+                className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 rounded focus:ring-brand-500 focus:ring-2"
+              />
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Enable SSH Tunnel
+              </span>
+            </label>
+          </div>
+
+          {formData.ssh_tunnel_enabled && (
+            <div className="space-y-4 pl-6 border-l-2 border-brand-500">
+              {/* SSH Host and Port */}
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="SSH Host"
+                  type="text"
+                  value={formData.ssh_host}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ssh_host: e.target.value })
+                  }
+                  placeholder="ssh.example.com"
+                  required={formData.ssh_tunnel_enabled}
+                />
+
+                <Input
+                  label="SSH Port"
+                  type="number"
+                  value={formData.ssh_port}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      ssh_port: parseInt(e.target.value) || 22,
+                    })
+                  }
+                  placeholder="22"
+                  required={formData.ssh_tunnel_enabled}
+                />
+              </div>
+
+              {/* SSH Username */}
+              <Input
+                label="SSH Username"
+                type="text"
+                value={formData.ssh_username}
+                onChange={(e) =>
+                  setFormData({ ...formData, ssh_username: e.target.value })
+                }
+                placeholder="ubuntu"
+                required={formData.ssh_tunnel_enabled}
+              />
+
+              {/* SSH Authentication Method */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  Authentication Method
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ssh_auth_method"
+                      value="password"
+                      checked={formData.ssh_auth_method === "password"}
+                      onChange={() =>
+                        setFormData({
+                          ...formData,
+                          ssh_auth_method: "password",
+                        })
+                      }
+                      className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 focus:ring-brand-500 focus:ring-2"
+                    />
+                    <Key className="w-4 h-4 text-neutral-500" />
+                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      Password
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ssh_auth_method"
+                      value="private_key"
+                      checked={formData.ssh_auth_method === "private_key"}
+                      onChange={() =>
+                        setFormData({
+                          ...formData,
+                          ssh_auth_method: "private_key",
+                        })
+                      }
+                      className="w-4 h-4 text-brand-600 bg-neutral-100 border-neutral-300 focus:ring-brand-500 focus:ring-2"
+                    />
+                    <FileKey className="w-4 h-4 text-neutral-500" />
+                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      Private Key
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* SSH Password or Private Key */}
+              {formData.ssh_auth_method === "password" ? (
+                <Input
+                  label="SSH Password"
+                  type="password"
+                  value={formData.ssh_password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ssh_password: e.target.value })
+                  }
+                  placeholder="••••••••"
+                  required={formData.ssh_tunnel_enabled}
+                />
+              ) : (
+                <>
+                  <Input
+                    label="Private Key Path"
+                    type="text"
+                    value={formData.ssh_private_key_path}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ssh_private_key_path: e.target.value,
+                      })
+                    }
+                    placeholder="~/.ssh/id_rsa"
+                    helperText="Absolute path to your SSH private key file"
+                    required={formData.ssh_tunnel_enabled}
+                  />
+                  <Input
+                    label="Passphrase (Optional)"
+                    type="password"
+                    value={formData.ssh_passphrase}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ssh_passphrase: e.target.value,
+                      })
+                    }
+                    placeholder="••••••••"
+                    helperText="Leave empty if key is not encrypted"
+                  />
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Save Connection Option */}

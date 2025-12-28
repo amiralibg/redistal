@@ -1,13 +1,13 @@
-import { ReactNode, useEffect } from 'react';
-import { X } from 'lucide-react';
-import clsx from 'clsx';
+import { ReactNode, useEffect } from "react";
+import { X } from "lucide-react";
+import clsx from "clsx";
 
 interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
   showCloseButton?: boolean;
 }
 
@@ -16,24 +16,24 @@ export function Dialog({
   onClose,
   title,
   children,
-  size = 'md',
+  size = "md",
   showCloseButton = true,
 }: DialogProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, onClose]);
 
@@ -50,19 +50,20 @@ export function Dialog({
       {/* Dialog */}
       <div
         className={clsx(
-          'relative w-full bg-white dark:bg-neutral-900 rounded-xl shadow-soft-xl animate-scale-in',
-          'border border-neutral-200 dark:border-neutral-800',
+          "relative w-full bg-white dark:bg-neutral-900 rounded-xl shadow-soft-xl animate-scale-in",
+          "border border-neutral-200 dark:border-neutral-800",
+          "max-h-[90vh] flex flex-col",
           {
-            'max-w-sm': size === 'sm',
-            'max-w-md': size === 'md',
-            'max-w-lg': size === 'lg',
-            'max-w-2xl': size === 'xl',
-          }
+            "max-w-sm": size === "sm",
+            "max-w-md": size === "md",
+            "max-w-lg": size === "lg",
+            "max-w-2xl": size === "xl",
+          },
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="flex items-center justify-between p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800 flex-shrink-0">
             {title && (
               <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
                 {title}
@@ -80,7 +81,7 @@ export function Dialog({
         )}
 
         {/* Content */}
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

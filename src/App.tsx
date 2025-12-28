@@ -19,10 +19,12 @@ import { ValueViewer } from "./components/ValueViewer";
 import { CliPanel } from "./components/CliPanel";
 import { CommandPalette, CommandAction } from "./components/CommandPalette";
 import { Settings } from "./components/Settings";
+import { ResizeHandle } from "./components/ResizeHandle";
 import { useRedisStore } from "./store/useRedisStore";
 import { useTheme } from "./lib/theme-context";
 import { useLoadConnections } from "./hooks/useLoadConnections";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useResize } from "./hooks/useResize";
 import { Button, IconButton, Badge } from "./components/ui";
 import type { StoredConnection } from "./types/redis";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -48,6 +50,21 @@ function App() {
   // Refs for triggering actions from keyboard shortcuts
   const refreshKeysRef = useRef<(() => void) | null>(null);
   const focusSearchRef = useRef<(() => void) | null>(null);
+
+  // Resizable panels
+  const keyBrowserResize = useResize({
+    initialSize: 320,
+    minSize: 250,
+    maxSize: 600,
+    direction: "horizontal",
+  });
+
+  const cliPanelResize = useResize({
+    initialSize: 256,
+    minSize: 150,
+    maxSize: 500,
+    direction: "vertical",
+  });
 
   useLoadConnections();
 
@@ -333,17 +350,33 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div
+        className="flex-1 flex overflow-hidden"
+        ref={keyBrowserResize.resizeRef}
+      >
         {/* Sidebar - Key Browser */}
-        <div className="w-80 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        <div
+          className="border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
+          style={{ width: `${keyBrowserResize.size}px` }}
+        >
           <KeyBrowser
             onRefreshKeysRef={refreshKeysRef}
             onFocusSearchRef={focusSearchRef}
           />
         </div>
 
+        {/* Resize Handle - Horizontal */}
+        <ResizeHandle
+          direction="horizontal"
+          onMouseDown={keyBrowserResize.handleMouseDown}
+          isResizing={keyBrowserResize.isResizing}
+        />
+
         {/* Main Panel */}
-        <div className="flex-1 flex flex-col">
+        <div
+          className="flex-1 flex flex-col overflow-hidden"
+          ref={cliPanelResize.resizeRef}
+        >
           {/* Value Viewer */}
           <div className="flex-1 overflow-hidden">
             <ValueViewer />
@@ -351,9 +384,21 @@ function App() {
 
           {/* CLI Panel */}
           {showCliPanel && (
-            <div className="h-64 border-t border-neutral-200 dark:border-neutral-800">
-              <CliPanel />
-            </div>
+            <>
+              {/* Resize Handle - Vertical */}
+              <ResizeHandle
+                direction="vertical"
+                onMouseDown={cliPanelResize.handleMouseDown}
+                isResizing={cliPanelResize.isResizing}
+              />
+
+              <div
+                className="border-t border-neutral-200 dark:border-neutral-800"
+                style={{ height: `${cliPanelResize.size}px` }}
+              >
+                <CliPanel />
+              </div>
+            </>
           )}
         </div>
       </div>

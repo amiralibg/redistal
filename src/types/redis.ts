@@ -1,3 +1,15 @@
+export interface SshTunnelConfig {
+  enabled: boolean;
+  ssh_host: string;
+  ssh_port: number;
+  ssh_username: string;
+  auth_method: "password" | "private_key";
+  ssh_password?: string;
+  ssh_private_key_path?: string;
+  ssh_passphrase?: string;
+  local_port?: number;
+}
+
 export interface ConnectionConfig {
   id: string;
   name: string;
@@ -7,6 +19,7 @@ export interface ConnectionConfig {
   password?: string;
   database: number;
   use_tls: boolean;
+  ssh_tunnel?: SshTunnelConfig;
 }
 
 export interface StoredConnection {
@@ -17,6 +30,7 @@ export interface StoredConnection {
   username?: string;
   database: number;
   use_tls: boolean;
+  ssh_tunnel?: SshTunnelConfig;
 }
 
 export interface ConnectionStatus {
